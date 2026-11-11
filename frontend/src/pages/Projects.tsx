@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, Project } from "../api";
+import { t } from "../i18n";
 
 export default function Projects() {
   const [list, setList] = useState<Project[]>([]);
@@ -26,24 +27,24 @@ export default function Projects() {
 
   return (
     <div className="page">
-      <h1>我的漫剧</h1>
-      <p className="muted">每部剧是一个项目：里面有分集、角色、场景和道具。</p>
+      <h1>{t("我的漫剧", "My Dramas")}</h1>
+      <p className="muted">{t("每部剧是一个项目：里面有分集、角色、场景和道具。", "Each drama is a project with its own episodes, characters, scenes and props.")}</p>
       {err && <p className="error">{err}</p>}
       <form className="card form-row" onSubmit={create}>
         <label>
-          剧名
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="比如：满门被诬，我在军营毒翻了整个朝廷" />
+          {t("剧名", "Title")}
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("比如：满门被诬，我在军营毒翻了整个朝廷", "e.g. Framed and Disowned, I Poisoned the Whole Court from the Barracks")} />
         </label>
         <label>
-          画风
+          {t("画风", "Art style")}
           <input value={style} onChange={(e) => setStyle(e.target.value)} />
         </label>
         <button className="primary" type="submit" disabled={!name.trim()}>
-          新建项目
+          {t("新建项目", "New project")}
         </button>
       </form>
       {list.length === 0 ? (
-        <p className="muted">还没有项目，先新建一个。</p>
+        <p className="muted">{t("还没有项目，先新建一个。", "No projects yet. Create one to get started.")}</p>
       ) : (
         <div className="grid">
           {list.map((p) => (
@@ -51,7 +52,7 @@ export default function Projects() {
               <h3>{p.name}</h3>
               <p className="muted">{p.style}</p>
               <small className="muted">
-                {p.aspect_ratio} · 创建于 {p.created_at.slice(0, 10)}
+                {p.aspect_ratio} · {t("创建于 {d}", "Created {d}", { d: p.created_at.slice(0, 10) })}
               </small>
             </Link>
           ))}

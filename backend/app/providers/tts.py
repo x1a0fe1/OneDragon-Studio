@@ -11,6 +11,7 @@ from pathlib import Path
 import httpx
 
 from . import ffmpeg
+from ..i18n import _
 
 EDGE_VOICES = {
     "zh-CN-XiaoxiaoNeural": "晓晓（女，温柔）",
@@ -23,6 +24,24 @@ EDGE_VOICES = {
     "zh-CN-shaanxi-XiaoniNeural": "晓妮（女，陕西话）",
     "zh-TW-HsiaoChenNeural": "曉臻（女，台湾腔）",
 }
+
+
+EDGE_VOICES_EN = {
+    "zh-CN-XiaoxiaoNeural": "Xiaoxiao (female, gentle)",
+    "zh-CN-XiaoyiNeural": "Xiaoyi (female, lively)",
+    "zh-CN-YunxiNeural": "Yunxi (male, young)",
+    "zh-CN-YunjianNeural": "Yunjian (male, deep, good for narration)",
+    "zh-CN-YunyangNeural": "Yunyang (male, broadcaster)",
+    "zh-CN-YunxiaNeural": "Yunxia (boy)",
+    "zh-CN-liaoning-XiaobeiNeural": "Xiaobei (female, Northeastern dialect)",
+    "zh-CN-shaanxi-XiaoniNeural": "Xiaoni (female, Shaanxi dialect)",
+    "zh-TW-HsiaoChenNeural": "HsiaoChen (female, Taiwanese accent)",
+}
+
+
+def edge_voices() -> dict:
+    """EDGE_VOICES 的按当前界面语言翻译的版本，给下拉框用。"""
+    return {k: _(v, EDGE_VOICES_EN.get(k, v)) for k, v in EDGE_VOICES.items()}
 
 
 class TTSError(RuntimeError):
@@ -43,7 +62,7 @@ def synthesize(cfg: dict, text: str, voice: str, out: Path) -> Path:
         return _edge(text, voice, speed, out)
     if provider == "openai":
         return _openai(cfg, text, voice, speed, out)
-    raise TTSError(f"未知的配音供应商：{provider}")
+    raise TTSError(_(f"未知的配音供应商：{provider}", f"Unknown voice-over provider: {provider}"))
 
 
 def _edge(text: str, voice: str, speed: float, out: Path) -> Path:
@@ -57,16 +76,16 @@ def _edge(text: str, voice: str, speed: float, out: Path) -> Path:
     try:
         asyncio.run(run())
     except Exception as e:  # noqa: BLE001  edge_tts 的异常类型很杂
-        raise TTSError(f"Edge 配音失败（音色 {voice}）：{e}") from e
+        raise TTSError(_(f"Edge 配音失败（音色 {voice}）：{e}", f"Edge voice-over failed (voice {voice}): {e}")) from e
     if not out.exists() or out.stat().st_size < 500:
-        raise TTSError(f"Edge 配音没有返回声音（音色 {voice} 可能不存在）")
+        raise TTSError(_(f"Edge 配音没有返回声音（音色 {voice} 可能不存在）", f"Edge voice-over returned no audio (voice {voice} may not exist)"))
     return out
 
 
 def _openai(cfg: dict, text: str, voice: str, speed: float, out: Path) -> Path:
     base = (cfg.get("base_url") or "").rstrip("/")
     if not base:
-        raise TTSError("没有配置配音接口地址，请到「设置」里填写")
+        raise TTSError(_("没有配置配音接口地址，请到「设置」里填写", "No voice-over endpoint URL configured. Fill it in under Settings"))
     if base.endswith("/audio/speech"):
         url = base
     elif re.search(r"/v\d+$", base):
@@ -79,8 +98,8 @@ def _openai(cfg: dict, text: str, voice: str, speed: float, out: Path) -> Path:
     try:
         r = httpx.post(url, headers=headers, json=body, timeout=120)
     except httpx.HTTPError as e:
-        raise TTSError(f"请求配音接口失败：{e}") from e
+        raise TTSError(_(f"请求配音接口失败：{e}", f"Voice-over request failed: {e}")) from e
     if r.status_code != 200:
-        raise TTSError(f"配音接口返回 {r.status_code}：{r.text[:300]}")
+        raise TTSError(_(f"配音接口返回 {r.status_code}：{r.text[:300]}", f"Voice-over endpoint returned {r.status_code}: {r.text[:300]}"))
     out.write_bytes(r.content)
     return out

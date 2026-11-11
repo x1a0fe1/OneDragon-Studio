@@ -21,6 +21,8 @@ from typing import Callable
 import httpx
 from PIL import Image
 
+from ..i18n import _
+
 Progress = Callable[[str], None]
 
 
@@ -35,11 +37,20 @@ class CloudAbort(RuntimeError):
 PROVIDERS = {"aliyun": "阿里云百炼", "volcengine": "火山方舟"}
 
 
+def provider_name(key: str) -> str:
+    """供应商的显示名（按当前界面语言）。"""
+    if key == "aliyun":
+        return _("阿里云百炼", "Alibaba Cloud Model Studio")
+    if key == "volcengine":
+        return _("火山方舟", "Volcano Engine Ark")
+    return PROVIDERS.get(key, key)
+
+
 # ---------- 公共 ----------
 def _key(cfg: dict, name: str) -> str:
     key = (cfg.get("api_key") or "").strip()
     if not key:
-        raise CloudAbort(f"还没有填 {name} 的 API Key，到「系统设置」里填写")
+        raise CloudAbort(_(f"还没有填 {name} 的 API Key，到「系统设置」里填写", f"No API key set for {name}. Fill it in under Settings"))
     return key
 
 
@@ -52,10 +63,10 @@ def _check(r: httpx.Response, name: str) -> dict:
         return data
     msg = _error_text(data) or r.text[:300]
     if r.status_code in (401, 403):
-        raise CloudAbort(f"{name} 拒绝访问（{r.status_code}）：API Key 无效、没开通这个模型或余额不足。{msg}")
+        raise CloudAbort(_(f"{name} 拒绝访问（{r.status_code}）：API Key 无效、没开通这个模型或余额不足。{msg}", f"{name} denied access ({r.status_code}): invalid API key, model not enabled, or insufficient balance. {msg}"))
     if r.status_code == 429 or r.status_code >= 500:
-        raise CloudError(f"{name} 暂时繁忙（{r.status_code}）：{msg}")
-    raise CloudAbort(f"{name} 返回 {r.status_code}：{_hint(msg)}")
+        raise CloudError(_(f"{name} 暂时繁忙（{r.status_code}）：{msg}", f"{name} is temporarily busy ({r.status_code}): {msg}"))
+    raise CloudAbort(_(f"{name} 返回 {r.status_code}：{_hint(msg)}", f"{name} returned {r.status_code}: {_hint(msg)}"))
 
 
 def _error_text(data: dict) -> str:
@@ -71,11 +82,11 @@ def _error_text(data: dict) -> str:
 def _hint(msg: str) -> str:
     low = msg.lower()
     if any(k in low for k in ("datainspection", "sensitive", "inappropriate", "risk", "审核")):
-        return msg + "（内容审核没通过：换个说法，避开暴力、血腥、真实人物等描写再试）"
+        return msg + _("（内容审核没通过：换个说法，避开暴力、血腥、真实人物等描写再试）", " (failed content moderation: rephrase and avoid violence, gore, real people, etc., then retry)")
     if "ipinfringement" in low:
-        return msg + "（疑似侵权：提示词里不要出现真实明星、品牌、已有动漫角色）"
+        return msg + _("（疑似侵权：提示词里不要出现真实明星、品牌、已有动漫角色）", " (possible infringement: keep real celebrities, brands and existing anime characters out of the prompt)")
     if "model" in low and ("not" in low or "exist" in low or "access" in low):
-        return msg + "（模型名可能写错了，或者账号还没开通这个模型）"
+        return msg + _("（模型名可能写错了，或者账号还没开通这个模型）", " (the model name may be wrong, or this model is not enabled on your account)")
     return msg
 
 
@@ -118,12 +129,12 @@ def download(url: str, out: Path, timeout: float = 300) -> Path:
     try:
         with httpx.stream("GET", url, timeout=timeout, follow_redirects=True) as r:
             if r.status_code != 200:
-                raise CloudError(f"下载结果失败（{r.status_code}）")
+                raise CloudError(_(f"下载结果失败（{r.status_code}）", f"Failed to download result ({r.status_code})"))
             with open(out, "wb") as f:
                 for chunk in r.iter_bytes():
                     f.write(chunk)
     except httpx.HTTPError as e:
-        raise CloudError(f"下载结果失败：{e}") from e
+        raise CloudError(_(f"下载结果失败：{e}", f"Failed to download result: {e}")) from e
     return out
 
 
@@ -132,7 +143,7 @@ def _post(url: str, key: str, body: dict, name: str, headers: dict | None = None
     try:
         r = httpx.post(url, headers=h, json=body, timeout=timeout)
     except httpx.HTTPError as e:
-        raise CloudError(f"连接 {name} 失败：{e}") from e
+        raise CloudError(_(f"连接 {name} 失败：{e}", f"Failed to connect to {name}: {e}")) from e
     return _check(r, name)
 
 
@@ -140,7 +151,7 @@ def _get(url: str, key: str, name: str) -> dict:
     try:
         r = httpx.get(url, headers={"Authorization": f"Bearer {key}"}, timeout=60)
     except httpx.HTTPError as e:
-        raise CloudError(f"连接 {name} 失败：{e}") from e
+        raise CloudError(_(f"连接 {name} 失败：{e}", f"Failed to connect to {name}: {e}")) from e
     return _check(r, name)
 
 
@@ -154,14 +165,16 @@ def _poll(fetch: Callable[[], tuple[str, dict]], progress: Progress | None, time
         if state == "succeeded":
             return data
         if state == "failed":
-            raise CloudAbort(f"{name} 生成失败：{_hint(_error_text(data) or '没有返回原因')}")
+            raise CloudAbort(_(f"{name} 生成失败：{_hint(_error_text(data) or '没有返回原因')}",
+                                f"{name} generation failed: {_hint(_error_text(data) or 'no reason given')}"))
         elapsed = int(time.monotonic() - start)
-        msg = f"{name} {'排队中' if state == 'pending' else '生成中'}… 已等 {elapsed} 秒"
+        msg = _(f"{name} {'排队中' if state == 'pending' else '生成中'}… 已等 {elapsed} 秒",
+                f"{name} {'queued' if state == 'pending' else 'generating'}… waited {elapsed}s")
         if progress and msg != last:
             progress(msg)
             last = msg
         if elapsed > timeout:
-            raise CloudError(f"{name} 超过 {int(timeout)} 秒还没出结果")
+            raise CloudError(_(f"{name} 超过 {int(timeout)} 秒还没出结果", f"{name} produced no result after {int(timeout)}s"))
         time.sleep(interval)
 
 
@@ -175,12 +188,12 @@ def _ali_image_url(data: dict) -> str:
         for item in (choice.get("message") or {}).get("content") or []:
             if isinstance(item, dict) and item.get("image"):
                 return item["image"]
-    raise CloudAbort("阿里云百炼没有返回图片：" + (_error_text(data) or str(data)[:200]))
+    raise CloudAbort(_("阿里云百炼没有返回图片：", "Alibaba Cloud Model Studio returned no image: ") + (_error_text(data) or str(data)[:200]))
 
 
 def aliyun_image(cfg: dict, prompt: str, negative: str, width: int, height: int,
                  refs: list[Path], out: Path) -> Path:
-    name = "阿里云百炼"
+    name = provider_name("aliyun")
     key = _key(cfg, name)
     use_refs = bool(refs) and cfg.get("use_refs", True)
     content = [{"text": prompt[:2000]}] + [{"image": data_uri(p)} for p in (refs[:4] if use_refs else [])]
@@ -203,7 +216,7 @@ def aliyun_image(cfg: dict, prompt: str, negative: str, width: int, height: int,
 
 def aliyun_video(cfg: dict, prompt: str, negative: str, first_frame: Path, seconds: float,
                  out: Path, progress: Progress | None = None, timeout: float = 1800) -> Path:
-    name = "阿里云百炼"
+    name = provider_name("aliyun")
     key = _key(cfg, name)
     model = cfg.get("video_model") or "wan2.6-i2v-flash"
     lo, hi = int(cfg.get("video_min_seconds") or 2), int(cfg.get("video_max_seconds") or 15)
@@ -218,7 +231,7 @@ def aliyun_video(cfg: dict, prompt: str, negative: str, first_frame: Path, secon
     task_id = (_post(f"{base}/api/v1/services/aigc/video-generation/video-synthesis", key, body, name,
                      headers={"X-DashScope-Async": "enable"}).get("output") or {}).get("task_id")
     if not task_id:
-        raise CloudAbort("阿里云百炼没有返回任务号")
+        raise CloudAbort(_("阿里云百炼没有返回任务号", "Alibaba Cloud Model Studio returned no task ID"))
 
     def fetch():
         data = _get(f"{base}/api/v1/tasks/{task_id}", key, name)
@@ -230,7 +243,7 @@ def aliyun_video(cfg: dict, prompt: str, negative: str, first_frame: Path, secon
     data = _poll(fetch, progress, timeout, name, interval=10)
     url = (data.get("output") or {}).get("video_url")
     if not url:
-        raise CloudAbort("阿里云百炼任务成功了，但没有返回视频链接")
+        raise CloudAbort(_("阿里云百炼任务成功了，但没有返回视频链接", "Alibaba Cloud Model Studio task succeeded but returned no video URL"))
     return download(url, out)
 
 
@@ -241,7 +254,7 @@ def _volc_base(cfg: dict) -> str:
 
 def volcengine_image(cfg: dict, prompt: str, negative: str, width: int, height: int,
                      refs: list[Path], out: Path) -> Path:
-    name = "火山方舟"
+    name = provider_name("volcengine")
     key = _key(cfg, name)
     body = {
         "model": cfg.get("image_model") or "doubao-seedream-5-0-pro-260628",
@@ -258,13 +271,13 @@ def volcengine_image(cfg: dict, prompt: str, negative: str, width: int, height: 
     items = data.get("data") or []
     url = items[0].get("url") if items and isinstance(items[0], dict) else None
     if not url:
-        raise CloudAbort("火山方舟没有返回图片：" + (_error_text(data) or str(data)[:200]))
+        raise CloudAbort(_("火山方舟没有返回图片：", "Volcano Engine Ark returned no image: ") + (_error_text(data) or str(data)[:200]))
     return download(url, out)
 
 
 def volcengine_video(cfg: dict, prompt: str, negative: str, first_frame: Path, seconds: float,
                      out: Path, progress: Progress | None = None, timeout: float = 1800, ratio: str = "adaptive") -> Path:
-    name = "火山方舟"
+    name = provider_name("volcengine")
     key = _key(cfg, name)
     lo, hi = int(cfg.get("video_min_seconds") or 4), int(cfg.get("video_max_seconds") or 30)
     text = prompt + (f"。避免：{negative}" if negative else "")
@@ -283,7 +296,7 @@ def volcengine_video(cfg: dict, prompt: str, negative: str, first_frame: Path, s
     base = _volc_base(cfg)
     task_id = _post(f"{base}/contents/generations/tasks", key, body, name).get("id")
     if not task_id:
-        raise CloudAbort("火山方舟没有返回任务号")
+        raise CloudAbort(_("火山方舟没有返回任务号", "Volcano Engine Ark returned no task ID"))
 
     def fetch():
         data = _get(f"{base}/contents/generations/tasks/{task_id}", key, name)
@@ -295,7 +308,7 @@ def volcengine_video(cfg: dict, prompt: str, negative: str, first_frame: Path, s
     data = _poll(fetch, progress, timeout, name, interval=8)
     url = (data.get("content") or {}).get("video_url")
     if not url:
-        raise CloudAbort("火山方舟任务成功了，但没有返回视频链接")
+        raise CloudAbort(_("火山方舟任务成功了，但没有返回视频链接", "Volcano Engine Ark task succeeded but returned no video URL"))
     return download(url, out)
 
 
@@ -310,20 +323,20 @@ def video(provider: str, cfg: dict, **kw) -> Path:
 
 def test(provider: str, cfg: dict) -> str:
     """只验证地址和 Key，不生成内容、不花钱：查一个不存在的任务，Key 对的话会返回「任务不存在」之类。"""
-    name = PROVIDERS[provider]
+    name = provider_name(provider)
     key = _key(cfg, name)
     url = (f"{_ali_base(cfg)}/api/v1/tasks/onedragon-connection-test" if provider == "aliyun"
            else f"{_volc_base(cfg)}/contents/generations/tasks/onedragon-connection-test")
     try:
         r = httpx.get(url, headers={"Authorization": f"Bearer {key}"}, timeout=20)
     except httpx.HTTPError as e:
-        raise CloudError(f"连接 {name} 失败：{e}") from e
+        raise CloudError(_(f"连接 {name} 失败：{e}", f"Failed to connect to {name}: {e}")) from e
     if r.status_code in (401, 403):
         try:
             detail = _error_text(r.json())
         except ValueError:
             detail = ""
-        raise CloudAbort(f"{name} 拒绝访问（{r.status_code}）：API Key 无效。{detail}")
+        raise CloudAbort(_(f"{name} 拒绝访问（{r.status_code}）：API Key 无效。{detail}", f"{name} denied access ({r.status_code}): invalid API key. {detail}"))
     if r.status_code >= 500:
-        raise CloudError(f"{name} 服务暂时不可用（{r.status_code}）")
-    return f"{name} 连接正常，API Key 有效"
+        raise CloudError(_(f"{name} 服务暂时不可用（{r.status_code}）", f"{name} service temporarily unavailable ({r.status_code})"))
+    return _(f"{name} 连接正常，API Key 有效", f"{name} connection OK, API key is valid")

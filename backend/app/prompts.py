@@ -7,6 +7,8 @@ import re
 
 from sqlalchemy.orm import Session
 
+from .i18n import _
+
 STORYBOARD_SYSTEM = """你是一名资深的竖屏漫剧分镜导演。用户会给你一集短剧剧本，你要把它拆成可以直接交给 AI 生图、生视频的分镜表。
 
 要求：
@@ -50,33 +52,35 @@ EPISODE_SPLIT_SYSTEM = """你是短剧编剧。用户会给你一篇按段落编
 
 DEFAULTS = {
     "storyboard_system": {
-        "label": "AI 拆分镜",
-        "desc": "把一集剧本拆成角色、场景、道具和镜头表。改动时请保留 JSON 结构说明，否则程序读不懂返回结果。",
-        "vars": {"aspect": "画面比例", "style": "项目画风"},
+        "label": ("AI 拆分镜", "AI storyboard breakdown"),
+        "desc": ("把一集剧本拆成角色、场景、道具和镜头表。改动时请保留 JSON 结构说明，否则程序读不懂返回结果。",
+                 "Breaks an episode script into characters, scenes, props and a shot list. Keep the JSON structure description when editing, or the app can't parse the result."),
+        "vars": {"aspect": ("画面比例", "Aspect ratio"), "style": ("项目画风", "Project art style")},
         "text": STORYBOARD_SYSTEM,
     },
     "episode_split_system": {
-        "label": "AI 按剧情分集",
-        "desc": "导入没有章节标题的故事时，让 AI 按剧情切分成若干集。",
-        "vars": {"chars_per_episode": "每集目标字数"},
+        "label": ("AI 按剧情分集", "AI episode splitting"),
+        "desc": ("导入没有章节标题的故事时，让 AI 按剧情切分成若干集。",
+                 "When importing a story without chapter headings, the AI splits it into episodes by plot."),
+        "vars": {"chars_per_episode": ("每集目标字数", "Target characters per episode")},
         "text": EPISODE_SPLIT_SYSTEM,
     },
     "character_image": {
-        "label": "角色参考图",
-        "desc": "角色的「生图提示词」留空时，用这个模板生成。",
-        "vars": {"name": "角色名", "appearance": "外貌描述", "style": "项目画风"},
+        "label": ("角色参考图", "Character reference image"),
+        "desc": ("角色的「生图提示词」留空时，用这个模板生成。", "Used when a character's image prompt is left blank."),
+        "vars": {"name": ("角色名", "Character name"), "appearance": ("外貌描述", "Appearance"), "style": ("项目画风", "Project art style")},
         "text": "角色设定图，同一人物的正面、侧面、背面三视图，纯白背景，全身站姿，{appearance}，{style}",
     },
     "scene_image": {
-        "label": "场景参考图",
-        "desc": "场景的「生图提示词」留空时，用这个模板生成。",
-        "vars": {"name": "场景名", "description": "场景描述", "style": "项目画风"},
+        "label": ("场景参考图", "Scene reference image"),
+        "desc": ("场景的「生图提示词」留空时，用这个模板生成。", "Used when a scene's image prompt is left blank."),
+        "vars": {"name": ("场景名", "Scene name"), "description": ("场景描述", "Scene description"), "style": ("项目画风", "Project art style")},
         "text": "场景设定图，空镜无人物，{description}，{style}",
     },
     "prop_image": {
-        "label": "道具参考图",
-        "desc": "道具的「生图提示词」留空时，用这个模板生成。",
-        "vars": {"name": "道具名", "description": "道具描述", "style": "项目画风"},
+        "label": ("道具参考图", "Prop reference image"),
+        "desc": ("道具的「生图提示词」留空时，用这个模板生成。", "Used when a prop's image prompt is left blank."),
+        "vars": {"name": ("道具名", "Prop name"), "description": ("道具描述", "Prop description"), "style": ("项目画风", "Project art style")},
         "text": "道具设定图，单个物件居中特写，纯白背景，无人物，{name}，{description}，{style}",
     },
 }
@@ -106,6 +110,7 @@ def get_text(key: str) -> str:
 def listing(db: Session) -> list[dict]:
     from . import settings_store
     custom = settings_store.get(db, "prompts") or {}
-    return [{"key": k, "label": v["label"], "desc": v["desc"], "vars": v["vars"], "default": v["text"],
+    return [{"key": k, "label": _(*v["label"]), "desc": _(*v["desc"]),
+             "vars": {name: _(*pair) for name, pair in v["vars"].items()}, "default": v["text"],
              "value": custom.get(k) or "", "customized": bool((custom.get(k) or "").strip())}
             for k, v in DEFAULTS.items()]

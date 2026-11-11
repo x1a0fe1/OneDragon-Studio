@@ -18,6 +18,7 @@ from ..db import SessionLocal
 from ..models import Task
 from . import audio, compose, media, pipeline, storyboard
 from .errors import TaskAbort
+from ..i18n import _, get_lang, set_lang
 
 log = logging.getLogger("onedragon.tasks")
 
@@ -39,15 +40,15 @@ HANDLERS = {
 }
 
 KIND_LABELS = {
-    "storyboard": "AI 拆分镜",
-    "char_image": "角色参考图",
-    "scene_image": "场景参考图",
-    "prop_image": "道具参考图",
-    "shot_image": "镜头首帧",
-    "shot_video": "镜头视频",
-    "shot_audio": "台词配音",
-    "compose": "合成成片",
-    "pipeline": "一键成片",
+    "storyboard": ("AI 拆分镜", "AI Storyboard"),
+    "char_image": ("角色参考图", "Character reference image"),
+    "scene_image": ("场景参考图", "Scene reference image"),
+    "prop_image": ("道具参考图", "Prop reference image"),
+    "shot_image": ("镜头首帧", "Shot first frame"),
+    "shot_video": ("镜头视频", "Shot video"),
+    "shot_audio": ("台词配音", "Dialogue voice-over"),
+    "compose": ("合成成片", "Compose final video"),
+    "pipeline": ("一键成片", "One-Click Episode"),
 }
 
 LANES = {
@@ -59,13 +60,14 @@ LANES = {
 
 
 def task_out(t: Task) -> S.TaskOut:
-    return S.TaskOut.model_validate(t).model_copy(update={"kind_label": KIND_LABELS.get(t.kind, t.kind)})
+    label = KIND_LABELS.get(t.kind)
+    return S.TaskOut.model_validate(t).model_copy(update={"kind_label": _(*label) if label else t.kind})
 
 
 def enqueue(db: Session, kind: str, target_id: int, project_id: int = 0, params: dict | None = None,
             max_attempts: int | None = None) -> Task:
     if kind not in HANDLERS:
-        raise ValueError(f"未知任务类型：{kind}")
+        raise ValueError(_(f"未知任务类型：{kind}", f"Unknown task type: {kind}"))
     # 同一对象同一类任务还在排队/执行，就不重复建
     existing = (db.query(Task)
                 .filter(Task.kind == kind, Task.target_id == target_id,
@@ -75,8 +77,9 @@ def enqueue(db: Session, kind: str, target_id: int, project_id: int = 0, params:
         return existing
     if max_attempts is None:
         max_attempts = int((settings_store.get(db, "worker") or {}).get("max_attempts", 3))
+    # 记住发起任务时的界面语言，执行时进度和报错用同一种语言
     t = Task(kind=kind, target_id=target_id, project_id=project_id,
-             params=params or {}, max_attempts=max_attempts)
+             params={**(params or {}), "lang": (params or {}).get("lang") or get_lang()}, max_attempts=max_attempts)
     db.add(t)
     db.commit()
     db.refresh(t)
@@ -85,7 +88,7 @@ def enqueue(db: Session, kind: str, target_id: int, project_id: int = 0, params:
 
 
 def retry(db: Session, task: Task) -> Task:
-    task.status, task.attempts, task.error, task.message = "pending", 0, "", "重新排队"
+    task.status, task.attempts, task.error, task.message = "pending", 0, "", _("重新排队", "Re-queued")
     db.commit()
     _wake_all()
     return task
@@ -93,7 +96,7 @@ def retry(db: Session, task: Task) -> Task:
 
 def cancel(db: Session, task: Task) -> Task:
     """只能取消还在排队的任务；正在执行的会跑完。"""
-    task.status, task.message = "failed", "已取消"
+    task.status, task.message = "failed", _("已取消", "Cancelled")
     db.commit()
     return task
 
@@ -118,12 +121,13 @@ def _run_one(kinds: set[str]) -> bool:
                 .order_by(Task.id).first())
         if not task:
             return False
-        task.status, task.message = "running", "执行中…"
+        set_lang((task.params or {}).get("lang"))
+        task.status, task.message = "running", _("执行中…", "Running…")
         task.attempts += 1
         db.commit()
         try:
             msg = HANDLERS[task.kind](db, task)
-            task.status, task.message, task.error = "done", msg or "完成", ""
+            task.status, task.message, task.error = "done", msg or _("完成", "Done"), ""
         except pipeline.Shutdown:
             db.rollback()
             return True  # 保持 running，下次启动重置为排队接着跑
@@ -135,9 +139,11 @@ def _run_one(kinds: set[str]) -> bool:
             log.warning("任务 %s(%s) 第 %d 次失败：%s", task.id, task.kind, task.attempts, e)
             task.error = f"{e}\n\n{traceback.format_exc(limit=3)}"
             if task.attempts < task.max_attempts:
-                task.status, task.message = "pending", f"第 {task.attempts} 次失败，稍后重试：{e}"
+                task.status, task.message = "pending", _(f"第 {task.attempts} 次失败，稍后重试：{e}",
+                                                         f"Attempt {task.attempts} failed, retrying shortly: {e}")
             else:
-                task.status, task.message = "failed", f"失败（已重试 {task.attempts} 次）：{e}"
+                task.status, task.message = "failed", _(f"失败（已重试 {task.attempts} 次）：{e}",
+                                                        f"Failed (after {task.attempts} attempts): {e}")
         db.commit()
         if task.status == "pending":  # 失败重试前退避一下
             _stop.wait(min(30, 5 * task.attempts))
@@ -166,7 +172,7 @@ def start_worker():
     # 上次没跑完就被关掉的任务，恢复成排队状态
     db = SessionLocal()
     try:
-        db.query(Task).filter(Task.status == "running").update({"status": "pending", "message": "服务重启，重新排队"})
+        db.query(Task).filter(Task.status == "running").update({"status": "pending", "message": _("服务重启，重新排队", "Server restarted, re-queued")})
         db.commit()
     finally:
         db.close()

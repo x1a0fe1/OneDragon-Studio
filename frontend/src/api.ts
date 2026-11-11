@@ -1,3 +1,5 @@
+import { getLang } from "./i18n";
+
 export interface Project {
   id: number;
   name: string;
@@ -108,7 +110,7 @@ async function handle<T>(r: Response): Promise<T> {
 function req<T>(method: string, url: string, body?: unknown): Promise<T> {
   return fetch(url, {
     method,
-    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    headers: { "X-Lang": getLang(), ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   }).then((r) => handle<T>(r));
 }
@@ -116,7 +118,7 @@ function req<T>(method: string, url: string, body?: unknown): Promise<T> {
 function upload<T>(url: string, file: File): Promise<T> {
   const fd = new FormData();
   fd.append("file", file);
-  return fetch(url, { method: "POST", body: fd }).then((r) => handle<T>(r));
+  return fetch(url, { method: "POST", body: fd, headers: { "X-Lang": getLang() } }).then((r) => handle<T>(r));
 }
 
 export const mediaUrl = (rel: string) => `/media/${rel}`;
@@ -154,7 +156,7 @@ export const api = {
     fd.append("text", b.text ?? "");
     fd.append("mode", b.mode);
     fd.append("size", String(b.size));
-    return fetch(`/api/projects/${pid}/import/preview`, { method: "POST", body: fd }).then((r) => handle<ImportPreview>(r));
+    return fetch(`/api/projects/${pid}/import/preview`, { method: "POST", body: fd, headers: { "X-Lang": getLang() } }).then((r) => handle<ImportPreview>(r));
   },
   importCommit: (pid: number, chapters: { title: string; text: string }[]) =>
     req<EpisodeBrief[]>("POST", `/api/projects/${pid}/import/commit`, { chapters }),

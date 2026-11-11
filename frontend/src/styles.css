@@ -388,3 +388,13 @@ input.search { min-width: 0; width: 260px; max-width: 100%; }
 .paypal-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 2px; }
 .paypal-btn { display: inline-block; padding: 7px 28px; border-radius: 99px; background: #ffc439; color: #003087; font-weight: 800; font-style: italic; letter-spacing: .02em; }
 .paypal-btn:hover { text-decoration: none; filter: brightness(.96); }
+
+/* 语言切换 */
+.sidebar-foot { display: flex; flex-direction: column; gap: 8px; }
+.lang-switch { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.lang-switch button { flex: 1; border: none; border-radius: 0; padding: 4px 0; font-size: 12px; background: var(--panel); color: var(--muted); }
+.lang-switch button + button { border-left: 1px solid var(--line); }
+.lang-switch button.on { background: var(--brand); color: var(--brand-ink); }
+.shell.collapsed .lang-switch { flex-direction: column; }
+.shell.collapsed .lang-switch button + button { border-left: none; border-top: 1px solid var(--line); }
+@media (max-width: 760px) { .shell.collapsed .lang-switch { flex-direction: row; } }

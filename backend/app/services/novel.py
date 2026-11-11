@@ -15,6 +15,7 @@ from xml.etree import ElementTree
 from .. import prompts
 from ..providers import llm
 from . import ai
+from ..i18n import _
 
 MAX_AI_CHARS = 60000  # AI 分集一次最多处理的字数，再长请先按章节或字数拆
 
@@ -93,10 +94,10 @@ def read_epub(data: bytes) -> list[dict]:
         z = zipfile.ZipFile(BytesIO(data))
         container = ElementTree.fromstring(z.read("META-INF/container.xml"))
     except (zipfile.BadZipFile, KeyError, ElementTree.ParseError) as e:
-        raise ImportErrorMsg("EPUB 文件损坏或格式不对") from e
+        raise ImportErrorMsg(_("EPUB 文件损坏或格式不对", "The EPUB file is corrupted or in the wrong format")) from e
     rootfile = next((el.get("full-path") for el in container.iter() if el.tag.endswith("rootfile")), None)
     if not rootfile:
-        raise ImportErrorMsg("EPUB 里找不到 OPF 文件")
+        raise ImportErrorMsg(_("EPUB 里找不到 OPF 文件", "No OPF file found in the EPUB"))
     opf = ElementTree.fromstring(z.read(rootfile))
     base = posixpath.dirname(rootfile)
     manifest = {el.get("id"): el.get("href") for el in opf.iter() if el.tag.endswith("item")}
@@ -118,7 +119,7 @@ def read_epub(data: bytes) -> list[dict]:
             text = text[len(title):].strip()
         chapters.append({"title": title, "text": text})
     if not chapters:
-        raise ImportErrorMsg("EPUB 里没有读到正文")
+        raise ImportErrorMsg(_("EPUB 里没有读到正文", "No body text found in the EPUB"))
     return chapters
 
 
@@ -180,19 +181,23 @@ def split_by_ai(text: str, size: int, project_id: int = 0) -> list[dict]:
     paras = paragraphs(text)
     total = sum(len(p) for p in paras)
     if total > MAX_AI_CHARS:
-        raise ImportErrorMsg(f"文本有 {total} 字，超过 AI 分集一次能处理的 {MAX_AI_CHARS} 字。"
-                             "请先用「按章节标题」或「按字数」拆，或者分几次导入。")
+        raise ImportErrorMsg(_(f"文本有 {total} 字，超过 AI 分集一次能处理的 {MAX_AI_CHARS} 字。"
+                               "请先用「按章节标题」或「按字数」拆，或者分几次导入。",
+                               f"The text has {total} characters, more than the {MAX_AI_CHARS} AI episode splitting "
+                               "can handle at once. Split by chapter headings or by length first, or import in parts."))
     if len(paras) < 2:
-        raise ImportErrorMsg("文本只有一段，没法按段落切分。请在段落之间换行后再试")
+        raise ImportErrorMsg(_("文本只有一段，没法按段落切分。请在段落之间换行后再试",
+                               "The text is a single paragraph and cannot be split. Add line breaks between paragraphs and try again"))
     numbered = "\n".join(f"[{i}] {p}" for i, p in enumerate(paras, 1))
     system = prompts.render(prompts.get_text("episode_split_system"), chars_per_episode=int(size))
     reply = ai.chat([{"role": "system", "content": system},
                      {"role": "user", "content": f"全文共 {len(paras)} 段、{total} 字：\n\n{numbered}"}],
-                    purpose="按剧情分集", project_id=project_id, json_mode=True)
+                    purpose=_("按剧情分集", "Split episodes by plot"), project_id=project_id, json_mode=True)
     try:
         items = llm.parse_json(reply).get("episodes") or []
     except ValueError as e:
-        raise ImportErrorMsg("大模型返回的不是 JSON，可以到「AI 日志」里查看原文") from e
+        raise ImportErrorMsg(_("大模型返回的不是 JSON，可以到「AI 日志」里查看原文",
+                               "The LLM did not return JSON; see the raw output in AI Logs")) from e
     starts, titles = [], []
     for it in items:
         try:
@@ -203,7 +208,8 @@ def split_by_ai(text: str, size: int, project_id: int = 0) -> list[dict]:
             starts.append(st)
             titles.append(str(it.get("title") or "").strip()[:30])
     if not starts:
-        raise ImportErrorMsg("大模型没有给出有效的分集位置，可以到「AI 日志」里查看原文")
+        raise ImportErrorMsg(_("大模型没有给出有效的分集位置，可以到「AI 日志」里查看原文",
+                               "The LLM gave no valid episode boundaries; see the raw output in AI Logs"))
     if starts[0] != 1:
         starts[0] = 1
     out = []
@@ -218,19 +224,20 @@ def split(text: str, mode: str, size: int = 1500, project_id: int = 0,
     """返回（分集列表, 说明）。"""
     text = normalize(text)
     if not text and not epub_chapters:
-        raise ImportErrorMsg("没有读到任何文字")
+        raise ImportErrorMsg(_("没有读到任何文字", "No text was found"))
     if mode == "chapter":
         if epub_chapters:
-            return epub_chapters, f"按 EPUB 目录拆出 {len(epub_chapters)} 章"
+            return epub_chapters, _(f"按 EPUB 目录拆出 {len(epub_chapters)} 章", f"{len(epub_chapters)} chapters from the EPUB table of contents")
         chapters = split_by_headings(text)
         if chapters:
-            return chapters, f"识别到 {len(chapters)} 个章节标题"
+            return chapters, _(f"识别到 {len(chapters)} 个章节标题", f"Detected {len(chapters)} chapter headings")
         chapters = split_by_length(text, size)
-        return chapters, f"没有识别到「第X章」这类标题，已改为按约 {size} 字一集切成 {len(chapters)} 集"
+        return chapters, _(f"没有识别到「第X章」这类标题，已改为按约 {size} 字一集切成 {len(chapters)} 集",
+                           f"No chapter headings detected; split by about {size} characters per episode into {len(chapters)} episodes")
     if mode == "length":
         chapters = split_by_length(text, size)
-        return chapters, f"按约 {size} 字一集，切成 {len(chapters)} 集"
+        return chapters, _(f"按约 {size} 字一集，切成 {len(chapters)} 集", f"About {size} characters per episode, {len(chapters)} episodes")
     if mode == "ai":
         chapters = split_by_ai(text, size, project_id)
-        return chapters, f"AI 按剧情切成 {len(chapters)} 集"
-    raise ImportErrorMsg(f"未知的拆分方式：{mode}")
+        return chapters, _(f"AI 按剧情切成 {len(chapters)} 集", f"AI split by plot into {len(chapters)} episodes")
+    raise ImportErrorMsg(_(f"未知的拆分方式：{mode}", f"Unknown split mode: {mode}"))

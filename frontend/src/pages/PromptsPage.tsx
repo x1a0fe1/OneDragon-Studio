@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, PromptTpl } from "../api";
+import { t } from "../i18n";
 
 /** 提示词模板：留空 = 用内置默认；改过的会标出来，可以一键恢复。 */
 export default function PromptsPage() {
@@ -16,7 +17,7 @@ export default function PromptsPage() {
     load();
   }, []);
 
-  if (!list) return <div className="page muted">{msg || "加载中…"}</div>;
+  if (!list) return <div className="page muted">{msg || t("加载中…", "Loading…")}</div>;
 
   const dirty = list.some((p) => draft[p.key] !== (p.value || p.default));
 
@@ -31,7 +32,7 @@ export default function PromptsPage() {
       }));
       await api.saveSettings({ prompts });
       await load();
-      setMsg("已保存，下一次生成就会用新的提示词");
+      setMsg(t("已保存，下一次生成就会用新的提示词", "Saved. The new prompts will be used from the next generation."));
     } catch (e: any) {
       setMsg(e.message);
     } finally {
@@ -41,10 +42,10 @@ export default function PromptsPage() {
 
   return (
     <div className="page">
-      <h1>提示词</h1>
+      <h1>{t("提示词", "Prompts")}</h1>
       <p className="muted small">
-        AI 拆分镜、分集和生成参考图时用的模板。用 <code>{"{变量名}"}</code> 插入变量，只认下面列出的变量，其他花括号会原样保留。
-        改坏了可以点「恢复默认」。
+        {t("AI 拆分镜、分集和生成参考图时用的模板。用 ", "Templates used for AI Storyboard, episode splitting and reference images. Use ")}<code>{t("{变量名}", "{name}")}</code>{t(" 插入变量，只认下面列出的变量，其他花括号会原样保留。", " to insert a variable; only the variables listed below are recognized, other braces are kept as is.")}
+        {t("改坏了可以点「恢复默认」。", " If you break something, click \"Reset to default\".")}
       </p>
       {list.map((p) => {
         const value = draft[p.key] ?? "";
@@ -53,13 +54,13 @@ export default function PromptsPage() {
         return (
           <div className="card prompt-card" key={p.key}>
             <div className="section-head">
-              <h2>{p.label} {changed && <span className="badge pending">已修改</span>}</h2>
-              {changed && <button className="link" onClick={() => setDraft({ ...draft, [p.key]: p.default })}>恢复默认</button>}
+              <h2>{p.label} {changed && <span className="badge pending">{t("已修改", "Modified")}</span>}</h2>
+              {changed && <button className="link" onClick={() => setDraft({ ...draft, [p.key]: p.default })}>{t("恢复默认", "Reset to default")}</button>}
             </div>
             <p className="muted small">{p.desc}</p>
             <p className="vars small">
-              可用变量：{Object.entries(p.vars).map(([k, label]) => (
-                <span key={k} className={missing.includes(k) ? "var unused" : "var"} title={missing.includes(k) ? "模板里没有用到" : ""}>
+              {t("可用变量：", "Variables: ")}{Object.entries(p.vars).map(([k, label]) => (
+                <span key={k} className={missing.includes(k) ? "var unused" : "var"} title={missing.includes(k) ? t("模板里没有用到", "Not used in the template") : ""}>
                   <code>{`{${k}}`}</code> {label}
                 </span>
               ))}
@@ -70,8 +71,8 @@ export default function PromptsPage() {
         );
       })}
       <div className="actions sticky">
-        <button className="primary" disabled={!dirty || saving} onClick={save}>{saving ? "保存中…" : "保存"}</button>
-        {dirty && <button onClick={() => setDraft(Object.fromEntries(list.map((p) => [p.key, p.value || p.default])))}>放弃修改</button>}
+        <button className="primary" disabled={!dirty || saving} onClick={save}>{saving ? t("保存中…", "Saving…") : t("保存", "Save")}</button>
+        {dirty && <button onClick={() => setDraft(Object.fromEntries(list.map((p) => [p.key, p.value || p.default])))}>{t("放弃修改", "Discard changes")}</button>}
         {msg && <span className="muted small">{msg}</span>}
       </div>
     </div>

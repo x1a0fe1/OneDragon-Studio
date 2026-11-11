@@ -7,7 +7,7 @@ import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from . import models  # noqa: F401  注册表结构
 from .config import MEDIA_DIR
 from .db import Base, add_missing_columns, engine
+from .i18n import set_lang
 from .routers import library, media, projects, system
 from .services import tasks
 
@@ -39,7 +40,13 @@ async def lifespan(_app: FastAPI):
     tasks.stop_worker()
 
 
-app = FastAPI(title="OneDragon Studio", version="0.4.0", lifespan=lifespan)
+async def _request_lang(request: Request):
+    """前端每个请求都带 X-Lang（zh / en），接口返回的提示和报错跟着界面语言走。
+    用 async 依赖：在请求的协程里设置，同步接口跑在线程池时会带上这个上下文。"""
+    set_lang(request.headers.get("x-lang"))
+
+
+app = FastAPI(title="OneDragon Studio", version="0.5.0", lifespan=lifespan, dependencies=[Depends(_request_lang)])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5174", "http://localhost:5174"],

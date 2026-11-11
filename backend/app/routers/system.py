@@ -6,6 +6,7 @@ from .. import prompts
 from .. import schemas as S
 from .. import settings_store
 from ..db import get_db
+from ..i18n import _
 from ..models import LLMLog, Task
 from ..providers import comfyui, llm
 from ..services import ai, tasks
@@ -29,25 +30,29 @@ def system_status(db: Session = Depends(get_db)):
     items = []
 
     llm_cfg = cfg.get("llm") or {}
-    name = f"文本大模型（{llm_cfg.get('model') or '未选模型'}）"
+    name = _(f"文本大模型（{llm_cfg.get('model') or '未选模型'}）",
+             f"Text LLM ({llm_cfg.get('model') or 'no model selected'})")
     if not llm_cfg.get("model") or (llm.protocol(llm_cfg) != "anthropic" and not llm_cfg.get("base_url")):
-        items.append({"key": "llm", "name": "文本大模型", "state": "error", "detail": "还没有配置地址和模型"})
+        items.append({"key": "llm", "name": _("文本大模型", "Text LLM"), "state": "error",
+                      "detail": _("还没有配置地址和模型", "Base URL and model are not configured yet")})
     else:
         try:
             llm.list_models(llm_cfg, timeout=8)  # 只查模型列表，不花 tokens
-            items.append({"key": "llm", "name": name, "state": "ok", "detail": "可以连接"})
+            items.append({"key": "llm", "name": name, "state": "ok", "detail": _("可以连接", "Connected")})
         except llm.LLMError as e:
             items.append({"key": "llm", "name": name, "state": "error", "detail": str(e)[:120]})
         except Exception:  # noqa: BLE001
-            items.append({"key": "llm", "name": name, "state": "error", "detail": "连接失败，检查地址、网络或代理"})
+            items.append({"key": "llm", "name": name, "state": "error",
+                          "detail": _("连接失败，检查地址、网络或代理", "Connection failed — check the URL, network or proxy")})
 
     from ..providers import cloud
     providers = {cfg.get("image_provider"), cfg.get("video_provider")}
     for prov in sorted(p for p in providers if p in cloud.PROVIDERS):
-        label = f"{cloud.PROVIDERS[prov]} 生图 / 生视频"
+        label = _(f"{cloud.provider_name(prov)} 生图 / 生视频", f"{cloud.provider_name(prov)} image / video generation")
         try:
             cloud.test(prov, cfg.get(prov) or {})
-            items.append({"key": prov, "name": label, "state": "ok", "detail": "API Key 有效（按张 / 按秒计费）"})
+            items.append({"key": prov, "name": label, "state": "ok", "detail": _("API Key 有效（按张 / 按秒计费）",
+                                                                                  "API key valid (billed per image / per second)")})
         except Exception as e:  # noqa: BLE001
             items.append({"key": prov, "name": label, "state": "error", "detail": str(e)[:120]})
     uses_comfy = "comfyui" in providers
@@ -55,22 +60,29 @@ def system_status(db: Session = Depends(get_db)):
         try:
             with comfyui.Client(cfg.get("comfyui") or {}) as client:
                 client.stats()
-            items.append({"key": "comfyui", "name": "ComfyUI 生图 / 生视频", "state": "ok", "detail": "可以连接"})
+            items.append({"key": "comfyui", "name": _("ComfyUI 生图 / 生视频", "ComfyUI image / video generation"),
+                          "state": "ok", "detail": _("可以连接", "Connected")})
         except Exception:  # noqa: BLE001
-            items.append({"key": "comfyui", "name": "ComfyUI 生图 / 生视频", "state": "error", "detail": "连接失败，检查地址或 GPU 服务器是否开着"})
+            items.append({"key": "comfyui", "name": _("ComfyUI 生图 / 生视频", "ComfyUI image / video generation"),
+                          "state": "error", "detail": _("连接失败，检查地址或 GPU 服务器是否开着",
+                                                       "Connection failed — check the URL and that the GPU server is running")})
     elif "mock" in providers:
-        items.append({"key": "comfyui", "name": "生图 / 生视频", "state": "warn",
-                      "detail": "演示模式：出占位图和占位视频。到设置里切到云端（百炼 / 方舟）或 ComfyUI 出真画面"})
+        items.append({"key": "comfyui", "name": _("生图 / 生视频", "Image / video generation"), "state": "warn",
+                      "detail": _("演示模式：出占位图和占位视频。到设置里切到云端（百炼 / 方舟）或 ComfyUI 出真画面",
+                                  "Demo mode: placeholder images and videos. Switch to a cloud provider (Model Studio / "
+                                  "Volcano Engine Ark) or ComfyUI in Settings for real visuals")})
 
     tts_provider = (cfg.get("tts") or {}).get("provider", "edge")
-    tts_names = {"edge": "Edge 在线朗读（免费）", "openai": "OpenAI 兼容接口", "mock": "静音占位"}
-    items.append({"key": "tts", "name": "配音", "state": "warn" if tts_provider == "mock" else "ok",
+    tts_names = {"edge": _("Edge 在线朗读（免费）", "Edge online TTS (free)"),
+                 "openai": _("OpenAI 兼容接口", "OpenAI-compatible API"), "mock": _("静音占位", "Silent placeholder")}
+    items.append({"key": "tts", "name": _("配音", "Voice-over"), "state": "warn" if tts_provider == "mock" else "ok",
                   "detail": tts_names.get(tts_provider, tts_provider)})
 
     from pathlib import Path
     ok = Path(ffmpeg.EXE).is_file()
-    items.append({"key": "ffmpeg", "name": "FFmpeg 合成", "state": "ok" if ok else "error",
-                  "detail": "已就绪" if ok else "找不到 FFmpeg，重新安装后端依赖"})
+    items.append({"key": "ffmpeg", "name": _("FFmpeg 合成", "FFmpeg composing"), "state": "ok" if ok else "error",
+                  "detail": _("已就绪", "Ready") if ok else _("找不到 FFmpeg，重新安装后端依赖",
+                                                                 "FFmpeg not found — reinstall the backend dependencies")})
 
     return {
         "items": items,
@@ -95,7 +107,7 @@ def put_settings(patch: dict, db: Session = Depends(get_db)):
 @router.post("/settings/test-llm")
 def test_llm(db: Session = Depends(get_db)):
     try:
-        reply = ai.chat([{"role": "user", "content": "只回复两个字：收到"}], purpose="测试连接",
+        reply = ai.chat([{"role": "user", "content": "只回复两个字：收到"}], purpose=_("测试连接", "Connection test"),
                         timeout=60, cfg=settings_store.get(db, "llm"))
     except llm.LLMError as e:
         raise HTTPException(400, str(e)) from e
@@ -106,7 +118,7 @@ def test_llm(db: Session = Depends(get_db)):
 def test_cloud(provider: str, db: Session = Depends(get_db)):
     from ..providers import cloud
     if provider not in cloud.PROVIDERS:
-        raise HTTPException(404, "未知的平台")
+        raise HTTPException(404, _("未知的平台", "Unknown platform"))
     try:
         return {"ok": True, "message": cloud.test(provider, settings_store.get(db, provider) or {})}
     except (cloud.CloudAbort, cloud.CloudError) as e:
@@ -158,7 +170,7 @@ def list_tasks(project_id: int | None = None, status: str | None = None, active:
 def get_task(tid: int, db: Session = Depends(get_db)):
     t = db.get(Task, tid)
     if not t:
-        raise HTTPException(404, "任务不存在")
+        raise HTTPException(404, _("任务不存在", "Task not found"))
     return _task_out(t)
 
 
@@ -166,9 +178,9 @@ def get_task(tid: int, db: Session = Depends(get_db)):
 def retry_task(tid: int, db: Session = Depends(get_db)):
     t = db.get(Task, tid)
     if not t:
-        raise HTTPException(404, "任务不存在")
+        raise HTTPException(404, _("任务不存在", "Task not found"))
     if t.status in ("pending", "running"):
-        raise HTTPException(400, "任务还在排队或执行中")
+        raise HTTPException(400, _("任务还在排队或执行中", "The task is still queued or running"))
     return _task_out(tasks.retry(db, t))
 
 
@@ -176,9 +188,9 @@ def retry_task(tid: int, db: Session = Depends(get_db)):
 def cancel_task(tid: int, db: Session = Depends(get_db)):
     t = db.get(Task, tid)
     if not t:
-        raise HTTPException(404, "任务不存在")
+        raise HTTPException(404, _("任务不存在", "Task not found"))
     if t.status != "pending":
-        raise HTTPException(400, "只能取消还在排队的任务")
+        raise HTTPException(400, _("只能取消还在排队的任务", "Only queued tasks can be cancelled"))
     return _task_out(tasks.cancel(db, t))
 
 
@@ -187,7 +199,7 @@ def cancel_pending(project_id: int | None = None, db: Session = Depends(get_db))
     q = db.query(Task).filter(Task.status == "pending")
     if project_id:
         q = q.filter(Task.project_id == project_id)
-    n = q.update({"status": "failed", "message": "已取消"})
+    n = q.update({"status": "failed", "message": _("已取消", "Cancelled")})
     db.commit()
     return {"cancelled": n}
 
@@ -214,7 +226,7 @@ def list_llm_logs(status: str | None = None, purpose: str | None = None, limit: 
 def get_llm_log(lid: int, db: Session = Depends(get_db)):
     row = db.get(LLMLog, lid)
     if not row:
-        raise HTTPException(404, "日志不存在")
+        raise HTTPException(404, _("日志不存在", "Log not found"))
     return row
 
 

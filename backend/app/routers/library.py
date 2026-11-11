@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from .. import schemas as S
 from ..config import MEDIA_DIR
 from ..db import get_db
+from ..i18n import _
 from ..models import Character, LibraryItem, Project, Prop, Scene
 from ..services import media
 from .media import UPLOAD_EXTS, MAX_UPLOAD
@@ -17,19 +18,19 @@ from .media import UPLOAD_EXTS, MAX_UPLOAD
 router = APIRouter(prefix="/api", tags=["library"])
 
 KINDS = {"character": Character, "scene": Scene, "prop": Prop}
-KIND_NAMES = {"character": "角色", "scene": "场景", "prop": "道具"}
+KIND_NAMES = {"character": ("角色", "character"), "scene": ("场景", "scene"), "prop": ("道具", "prop")}
 
 
 def _get(db: Session, model, obj_id: int):
     obj = db.get(model, obj_id)
     if not obj:
-        raise HTTPException(404, f"{model.__name__} {obj_id} 不存在")
+        raise HTTPException(404, _(f"{model.__name__} {obj_id} 不存在", f"{model.__name__} {obj_id} not found"))
     return obj
 
 
 def _check_kind(kind: str):
     if kind not in KINDS:
-        raise HTTPException(400, f"未知的素材类型：{kind}")
+        raise HTTPException(400, _(f"未知的素材类型：{kind}", f"Unknown asset type: {kind}"))
 
 
 def _stamped(stem: str, suffix: str) -> str:
@@ -90,10 +91,10 @@ async def upload_library_image(lid: int, file: UploadFile = File(...), db: Sessi
     item = _get(db, LibraryItem, lid)
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in UPLOAD_EXTS:
-        raise HTTPException(400, "只支持 PNG / JPG / WEBP 图片")
+        raise HTTPException(400, _("只支持 PNG / JPG / WEBP 图片", "Only PNG / JPG / WEBP images are supported"))
     data = await file.read(MAX_UPLOAD + 1)
     if len(data) > MAX_UPLOAD:
-        raise HTTPException(400, "图片不能超过 20MB")
+        raise HTTPException(400, _("图片不能超过 20MB", "Image must not exceed 20MB"))
     rel = _stamped(f"library/{item.kind}{item.id}", suffix)
     (MEDIA_DIR / rel).parent.mkdir(parents=True, exist_ok=True)
     (MEDIA_DIR / rel).write_bytes(data)
@@ -122,9 +123,12 @@ def save_to_library(body: S.SaveToLibrary, db: Session = Depends(get_db)):
     if new_image:
         media.set_file(db, item, "image", new_image)
     db.commit()
-    verb = "已更新素材库里的" if updated else "已存入素材库："
-    return {"item": S.LibraryOut.model_validate(item), "updated": updated,
-            "message": f"{verb}{KIND_NAMES[body.kind]}「{item.name}」"}
+    kind_zh, kind_en = KIND_NAMES[body.kind]
+    if updated:
+        message = _(f"已更新素材库里的{kind_zh}「{item.name}」", f"Updated {kind_en} \"{item.name}\" in the Asset Library")
+    else:
+        message = _(f"已存入素材库：{kind_zh}「{item.name}」", f"Saved {kind_en} \"{item.name}\" to the Asset Library")
+    return {"item": S.LibraryOut.model_validate(item), "updated": updated, "message": message}
 
 
 @router.post("/projects/{pid}/library-import")
@@ -157,7 +161,8 @@ def import_from_library(pid: int, body: S.ImportFromLibrary, db: Session = Depen
         existing[item.kind].add(item.name)
         created.append(item.name)
     db.commit()
-    msg = f"导入了 {len(created)} 个" if created else "没有导入新的素材"
+    msg = _(f"导入了 {len(created)} 个", f"Imported {len(created)}") if created         else _("没有导入新的素材", "No new assets imported")
     if skipped:
-        msg += f"；项目里已有同名的，已跳过：{'、'.join(skipped)}"
+        msg += _(f"；项目里已有同名的，已跳过：{'、'.join(skipped)}",
+                 f"; skipped (same name already in project): {', '.join(skipped)}")
     return {"created": created, "skipped": skipped, "message": msg}

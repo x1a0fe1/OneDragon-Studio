@@ -17,6 +17,8 @@ from typing import Callable
 
 import httpx
 
+from ..i18n import _
+
 PLACEHOLDERS = {
     "prompt": "正向提示词",
     "negative": "反向提示词",
@@ -50,12 +52,12 @@ def parse_workflow(text: str) -> dict:
     try:
         wf = json.loads(text)
     except json.JSONDecodeError as e:
-        raise WorkflowError(f"工作流不是合法的 JSON：{e}") from e
+        raise WorkflowError(_(f"工作流不是合法的 JSON：{e}", f"Workflow is not valid JSON: {e}")) from e
     if isinstance(wf, dict) and "nodes" in wf and "links" in wf:
-        raise WorkflowError("这是 ComfyUI 的普通保存格式。请在 ComfyUI 菜单里用「导出 (API)」重新导出")
+        raise WorkflowError(_("这是 ComfyUI 的普通保存格式。请在 ComfyUI 菜单里用「导出 (API)」重新导出", "This is ComfyUI's regular save format. Re-export it from the ComfyUI menu with \"Export (API)\""))
     if not isinstance(wf, dict) or not wf or not all(
             isinstance(n, dict) and "class_type" in n for n in wf.values()):
-        raise WorkflowError("看不出是 ComfyUI 的 API 格式工作流（应该是 {节点ID: {class_type, inputs}}）")
+        raise WorkflowError(_("看不出是 ComfyUI 的 API 格式工作流（应该是 {节点ID: {class_type, inputs}}）", "Doesn't look like a ComfyUI API-format workflow (expected {node_id: {class_type, inputs}})"))
     return wf
 
 
@@ -76,7 +78,8 @@ def fill(obj, values: dict):
     """把占位符换成实际值，返回新对象。"""
     def lookup(name: str):
         if name not in values:
-            raise WorkflowError(f"工作流里的占位符 {{{{{name}}}}} 在这一步用不了。可用：" + "、".join(sorted(values)))
+            raise WorkflowError(_(f"工作流里的占位符 {{{{{name}}}}} 在这一步用不了。可用：", f"Workflow placeholder {{{{{name}}}}} is not available in this step. Available: ")
+                                + _("、", ", ").join(sorted(values)))
         return values[name]
 
     if isinstance(obj, str):
@@ -99,7 +102,7 @@ class Client:
     def __init__(self, cfg: dict):
         self.base = (cfg.get("base_url") or "").rstrip("/")
         if not self.base:
-            raise WorkflowError("没有配置 ComfyUI 地址，请到「设置」里填写")
+            raise WorkflowError(_("没有配置 ComfyUI 地址，请到「设置」里填写", "No ComfyUI URL configured. Fill it in under Settings"))
         self.timeout = float(cfg.get("timeout_sec") or 1800)
         self.http = httpx.Client(base_url=self.base, timeout=60)
 
@@ -109,7 +112,7 @@ class Client:
     def __enter__(self):
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *exc):
         self.close()
 
     def _get(self, path: str, **params):
@@ -132,9 +135,9 @@ class Client:
             r = self.http.post("/upload/image", files={"image": (name, path.read_bytes(), mime)},
                                data={"overwrite": "true", "type": "input"})
         except httpx.HTTPError as e:
-            raise ComfyError(f"上传图片到 ComfyUI 失败：{e}") from e
+            raise ComfyError(_(f"上传图片到 ComfyUI 失败：{e}", f"Failed to upload image to ComfyUI: {e}")) from e
         if r.status_code != 200:
-            raise ComfyError(f"上传图片到 ComfyUI 失败：{r.status_code} {r.text[:200]}")
+            raise ComfyError(_(f"上传图片到 ComfyUI 失败：{r.status_code} {r.text[:200]}", f"Failed to upload image to ComfyUI: {r.status_code} {r.text[:200]}"))
         j = r.json()
         return f"{j['subfolder']}/{j['name']}" if j.get("subfolder") else j["name"]
 
@@ -145,7 +148,7 @@ class Client:
         except httpx.HTTPError as e:
             raise ComfyError(f"连不上 ComfyUI（{self.base}）：{e}") from e
         if r.status_code != 200:
-            raise WorkflowError("ComfyUI 拒绝了这个工作流：" + _describe_rejection(r))
+            raise WorkflowError(_("ComfyUI 拒绝了这个工作流：", "ComfyUI rejected this workflow: ") + _describe_rejection(r))
         prompt_id = r.json()["prompt_id"]
 
         start = time.monotonic()
@@ -158,17 +161,17 @@ class Client:
                     self.http.post("/interrupt", json={"prompt_id": prompt_id})
                 except httpx.HTTPError:
                     pass
-                raise ComfyError(f"ComfyUI 超过 {self.timeout:.0f} 秒还没出结果，已放弃")
+                raise ComfyError(_(f"ComfyUI 超过 {self.timeout:.0f} 秒还没出结果，已放弃", f"ComfyUI produced no result after {self.timeout:.0f}s, gave up"))
             entry = self._get(f"/history/{prompt_id}").json().get(prompt_id)
             if entry:
                 status = entry.get("status") or {}
                 if status.get("status_str") == "error":
-                    raise ComfyError("ComfyUI 执行出错：" + _describe_error(status))
+                    raise ComfyError(_("ComfyUI 执行出错：", "ComfyUI execution error: ") + _describe_error(status))
                 if status.get("completed", True):
                     return entry.get("outputs") or {}
             if progress and waited - last_report >= 10:
                 last_report = waited
-                progress(f"ComfyUI 生成中，已等待 {waited:.0f} 秒")
+                progress(_(f"ComfyUI 生成中，已等待 {waited:.0f} 秒", f"ComfyUI generating, waited {waited:.0f}s"))
             time.sleep(2)
 
     def download(self, f: dict, dest: Path) -> Path:
@@ -200,12 +203,14 @@ def _describe_rejection(r: httpx.Response) -> str:
     parts = [(j.get("error") or {}).get("message", "")]
     for node_id, ne in (j.get("node_errors") or {}).items():
         for err in ne.get("errors", []):
-            parts.append(f"节点 {node_id}（{ne.get('class_type', '')}）：{err.get('message', '')} {err.get('details', '')}".strip())
-    return "；".join(p for p in parts if p) or str(j)[:300]
+            parts.append(_(f"节点 {node_id}（{ne.get('class_type', '')}）：{err.get('message', '')} {err.get('details', '')}",
+                            f"Node {node_id} ({ne.get('class_type', '')}): {err.get('message', '')} {err.get('details', '')}").strip())
+    return _("；", "; ").join(p for p in parts if p) or str(j)[:300]
 
 
 def _describe_error(status: dict) -> str:
     for kind, info in status.get("messages") or []:
         if kind == "execution_error":
-            return f"{info.get('node_type', '')} 节点：{info.get('exception_message', '')}".strip()
+            return _(f"{info.get('node_type', '')} 节点：{info.get('exception_message', '')}",
+                     f"{info.get('node_type', '')} node: {info.get('exception_message', '')}").strip()
     return json.dumps(status, ensure_ascii=False)[:300]

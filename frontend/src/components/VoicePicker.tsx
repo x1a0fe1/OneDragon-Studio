@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { api } from "../api";
+import { t } from "../i18n";
 
 let voiceCache: Promise<Record<string, string>> | null = null;
 const loadVoices = () => (voiceCache ??= api.voices().catch(() => ({})));
@@ -58,8 +59,8 @@ export default function VoicePicker({
       <datalist id={id}>
         {Object.entries(voices).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
       </datalist>
-      <button type="button" className="small-btn" onClick={preview} disabled={state === "loading" || !v.trim()} title={err || "用当前配音设置念一句试听"}>
-        {state === "loading" ? "…" : state === "error" ? "试听失败" : "试听"}
+      <button type="button" className="small-btn" onClick={preview} disabled={state === "loading" || !v.trim()} title={err || t("用当前配音设置念一句试听", "Play a sample line with the current voice settings")}>
+        {state === "loading" ? "…" : state === "error" ? t("试听失败", "Preview failed") : t("试听", "Preview")}
       </button>
     </span>
   );

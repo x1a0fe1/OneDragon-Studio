@@ -11,6 +11,8 @@ import re
 
 import httpx
 
+from ..i18n import _
+
 ANTHROPIC_API = "https://api.anthropic.com"
 
 
@@ -62,9 +64,9 @@ def _proxy(cfg: dict) -> str | None:
 
 def _check(cfg: dict) -> None:
     if protocol(cfg) != "anthropic" and not _base(cfg):
-        raise LLMError("没有配置大模型地址，请到「设置」里填写")
+        raise LLMError(_("没有配置大模型地址，请到「设置」里填写", "No LLM endpoint URL configured. Fill it in under Settings"))
     if not cfg.get("model"):
-        raise LLMError("没有配置大模型名称")
+        raise LLMError(_("没有配置大模型名称", "No LLM model name configured"))
 
 
 # ---------- OpenAI 兼容 ----------
@@ -82,14 +84,14 @@ def _openai_complete(cfg: dict, messages: list[dict], json_mode: bool, timeout: 
                 body.pop("response_format")
                 r = client.post(endpoint(_base(cfg)), headers=_headers(cfg), json=body)
     except httpx.HTTPError as e:
-        raise LLMError(f"请求大模型失败：{e}") from e
+        raise LLMError(_(f"请求大模型失败：{e}", f"LLM request failed: {e}")) from e
     if r.status_code != 200:
-        raise LLMError(f"大模型返回 {r.status_code}：{r.text[:300]}")
+        raise LLMError(_(f"大模型返回 {r.status_code}：{r.text[:300]}", f"LLM returned {r.status_code}: {r.text[:300]}"))
     try:
         data = r.json()
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, ValueError) as e:
-        raise LLMError(f"大模型返回格式无法识别：{r.text[:300]}") from e
+        raise LLMError(_(f"大模型返回格式无法识别：{r.text[:300]}", f"Unrecognized LLM response format: {r.text[:300]}")) from e
     usage = data.get("usage") or {}
     return {"content": content or "",
             "usage": {"prompt_tokens": int(usage.get("prompt_tokens") or 0),
@@ -100,15 +102,15 @@ def _openai_models(cfg: dict, timeout: float) -> list[str]:
     try:
         r = httpx.get(_api_root(_base(cfg)) + "/models", headers=_headers(cfg), timeout=timeout, proxy=_proxy(cfg))
     except httpx.HTTPError as e:
-        raise LLMError(f"连接失败：{e}") from e
+        raise LLMError(_(f"连接失败：{e}", f"Connection failed: {e}")) from e
     if r.status_code in (401, 403):
-        raise LLMError(f"API Key 无效或没有权限（{r.status_code}）")
+        raise LLMError(_(f"API Key 无效或没有权限（{r.status_code}）", f"Invalid API key or no permission ({r.status_code})"))
     if r.status_code != 200:
-        raise LLMError(f"获取模型列表失败（{r.status_code}）：{r.text[:200]}")
+        raise LLMError(_(f"获取模型列表失败（{r.status_code}）：{r.text[:200]}", f"Failed to fetch model list ({r.status_code}): {r.text[:200]}"))
     try:
         items = r.json().get("data") or r.json().get("models") or []
     except ValueError as e:
-        raise LLMError("模型列表格式无法识别") from e
+        raise LLMError(_("模型列表格式无法识别", "Unrecognized model list format")) from e
     ids = [(m.get("id") or m.get("name") or "") if isinstance(m, dict) else str(m) for m in items]
     return sorted({i.removeprefix("models/") for i in ids if i})
 
@@ -128,18 +130,18 @@ def _anthropic_client(cfg: dict, timeout: float):
 def _anthropic_error(e: Exception) -> LLMError:
     import anthropic
     if isinstance(e, anthropic.AuthenticationError):
-        return LLMError("Claude：API Key 无效")
+        return LLMError(_("Claude：API Key 无效", "Claude: invalid API key"))
     if isinstance(e, anthropic.PermissionDeniedError):
-        return LLMError("Claude：这个 Key 没有权限使用该模型")
+        return LLMError(_("Claude：这个 Key 没有权限使用该模型", "Claude: this API key has no permission to use this model"))
     if isinstance(e, anthropic.NotFoundError):
-        return LLMError("Claude：模型名不存在，点「获取模型列表」选一个")
+        return LLMError(_("Claude：模型名不存在，点「获取模型列表」选一个", "Claude: model not found. Click \"Fetch model list\" and pick one"))
     if isinstance(e, anthropic.RateLimitError):
-        return LLMError("Claude：请求太频繁或额度用完，稍后再试")
+        return LLMError(_("Claude：请求太频繁或额度用完，稍后再试", "Claude: rate limited or quota exhausted, try again later"))
     if isinstance(e, anthropic.APIStatusError):
-        return LLMError(f"Claude 返回 {e.status_code}：{e.message}")
+        return LLMError(_(f"Claude 返回 {e.status_code}：{e.message}", f"Claude returned {e.status_code}: {e.message}"))
     if isinstance(e, anthropic.APIConnectionError):
-        return LLMError(f"连接 Claude 失败（国内一般要在设置里填代理）：{e}")
-    return LLMError(f"调用 Claude 失败：{e}")
+        return LLMError(_(f"连接 Claude 失败（国内一般要在设置里填代理）：{e}", f"Failed to connect to Claude (in mainland China you usually need to set a proxy in Settings): {e}"))
+    return LLMError(_(f"调用 Claude 失败：{e}", f"Claude call failed: {e}"))
 
 
 def _anthropic_complete(cfg: dict, messages: list[dict], json_mode: bool, timeout: float) -> dict:
@@ -162,10 +164,10 @@ def _anthropic_complete(cfg: dict, messages: list[dict], json_mode: bool, timeou
     except anthropic.AnthropicError as e:
         raise _anthropic_error(e) from e
     if resp.stop_reason == "refusal":
-        raise LLMError("Claude 拒绝了这次请求（安全策略）。可以调整剧本措辞，或换一个模型")
+        raise LLMError(_("Claude 拒绝了这次请求（安全策略）。可以调整剧本措辞，或换一个模型", "Claude refused this request (safety policy). Try rewording the script or switch to another model"))
     text = "".join(b.text for b in resp.content if b.type == "text")
     if resp.stop_reason == "max_tokens" and not text.strip():
-        raise LLMError("Claude 输出超长被截断，可以把剧本拆短一些")
+        raise LLMError(_("Claude 输出超长被截断，可以把剧本拆短一些", "Claude output was truncated for length. Try splitting the script into shorter parts"))
     return {"content": text, "usage": {"prompt_tokens": resp.usage.input_tokens,
                                        "completion_tokens": resp.usage.output_tokens}}
 
@@ -175,7 +177,7 @@ def _anthropic_models(cfg: dict, timeout: float) -> list[str]:
     try:
         return sorted(m.id for m in _anthropic_client(cfg, timeout).models.list(limit=100))
     except anthropic.NotFoundError as e:
-        raise LLMError("Claude：接口地址不对，官方地址是 https://api.anthropic.com") from e
+        raise LLMError(_("Claude：接口地址不对，官方地址是 https://api.anthropic.com", "Claude: wrong endpoint URL; the official one is https://api.anthropic.com")) from e
     except anthropic.AnthropicError as e:
         raise _anthropic_error(e) from e
 
@@ -198,7 +200,7 @@ def list_models(cfg: dict, timeout: float = 20) -> list[str]:
     if protocol(cfg) == "anthropic":
         return _anthropic_models(cfg, timeout)
     if not _base(cfg):
-        raise LLMError("先填接口地址")
+        raise LLMError(_("先填接口地址", "Fill in the endpoint URL first"))
     return _openai_models(cfg, timeout)
 
 

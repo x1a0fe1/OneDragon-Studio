@@ -16,6 +16,7 @@ from ..providers import ffmpeg
 from ..providers.mock import font, wrap
 from . import audio
 from .errors import TaskAbort
+from ..i18n import _
 from .media import new_rel_path, set_file, size_for
 
 
@@ -61,15 +62,16 @@ def _srt_time(t: float) -> str:
 def compose_episode(db: Session, task: Task) -> str:
     ep = db.get(Episode, task.target_id)
     if not ep:
-        raise TaskAbort("分集已被删除")
+        raise TaskAbort(_("分集已被删除", "The episode has been deleted"))
     shots = list(ep.shots)
     if not shots:
-        raise TaskAbort("这一集还没有镜头")
+        raise TaskAbort(_("这一集还没有镜头", "This episode has no shots yet"))
     missing = [f"#{s.index}" for s in shots
                if not (s.video_path and (MEDIA_DIR / s.video_path).is_file())
                and not (s.image_path and (MEDIA_DIR / s.image_path).is_file())]
     if missing:
-        raise TaskAbort(f"镜头 {'、'.join(missing)} 还没有首帧或视频，先生成画面")
+        raise TaskAbort(_(f"镜头 {'、'.join(missing)} 还没有首帧或视频，先生成画面",
+                          f"Shot {', '.join(missing)} has no first frame or video yet — generate the visuals first"))
 
     project = ep.project
     tcfg = settings_store.get(db, "tts") or {}
@@ -82,7 +84,7 @@ def compose_episode(db: Session, task: Task) -> str:
     # 1. 配音：缺的、台词改过的、音色改过的，重新生成
     todo = [s for s in shots if audio.needs_audio(s, project, tcfg)]
     for i, s in enumerate(todo, 1):
-        progress(f"配音 {i}/{len(todo)}")
+        progress(_(f"配音 {i}/{len(todo)}", f"Voice-over {i}/{len(todo)}"))
         audio.make_shot_audio(db, s)
 
     # 2. 逐镜头出片段
@@ -95,7 +97,7 @@ def compose_episode(db: Session, task: Task) -> str:
     with tempfile.TemporaryDirectory(prefix="onedragon_") as tmp_dir:
         tmp = Path(tmp_dir)
         for i, s in enumerate(shots):
-            progress(f"合成镜头 {i + 1}/{len(shots)}")
+            progress(_(f"合成镜头 {i + 1}/{len(shots)}", f"Composing shot {i + 1}/{len(shots)}"))
             line = audio.clean_line(s.dialogue)
             has_audio = bool(s.audio_path and (MEDIA_DIR / s.audio_path).is_file())
             length = max(float(s.duration or 1), (s.audio_duration + pad) if has_audio else 0)
@@ -128,7 +130,7 @@ def compose_episode(db: Session, task: Task) -> str:
             t += length
 
         # 3. 拼接
-        progress("拼接成片")
+        progress(_("拼接成片", "Concatenating final video"))
         (tmp / "list.txt").write_text("".join(f"file 'seg_{i:03d}.mp4'\n" for i in range(len(shots))), encoding="utf-8")
         rel = new_rel_path(project.id, f"e{ep.id}", "final", ".mp4")
         (MEDIA_DIR / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -140,4 +142,5 @@ def compose_episode(db: Session, task: Task) -> str:
     ep.final_duration = round(ffmpeg.duration(MEDIA_DIR / rel), 2)
     set_file(db, ep, "srt_path", srt_rel)
     set_file(db, ep, "final_path", rel)
-    return f"成片已合成：{len(shots)} 个镜头，{ep.final_duration:.1f} 秒"
+    return _(f"成片已合成：{len(shots)} 个镜头，{ep.final_duration:.1f} 秒",
+             f"Final video composed: {len(shots)} shots, {ep.final_duration:.1f}s")

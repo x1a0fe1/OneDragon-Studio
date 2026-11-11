@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import schemas as S
 from ..db import get_db
+from ..i18n import _
 from ..models import Character, Episode, Project, Prop, Scene, Shot
 from ..providers import llm
 from ..services import media, novel, tasks
@@ -19,7 +20,7 @@ router = APIRouter(prefix="/api", tags=["projects"])
 def _get(db: Session, model, obj_id: int):
     obj = db.get(model, obj_id)
     if not obj:
-        raise HTTPException(404, f"{model.__name__} {obj_id} 不存在")
+        raise HTTPException(404, _(f"{model.__name__} {obj_id} 不存在", f"{model.__name__} {obj_id} not found"))
     return obj
 
 
@@ -105,7 +106,7 @@ def delete_episode(eid: int, db: Session = Depends(get_db)):
 def run_storyboard(eid: int, target_seconds: int = 60, db: Session = Depends(get_db)):
     e = _get(db, Episode, eid)
     if not e.script.strip():
-        raise HTTPException(400, "先填写剧本再拆分镜")
+        raise HTTPException(400, _("先填写剧本再拆分镜", "Write a script before generating the storyboard"))
     t = tasks.enqueue(db, "storyboard", eid, e.project_id, {"target_seconds": target_seconds})
     return tasks.task_out(t)
 
@@ -197,12 +198,12 @@ async def import_preview(pid: int, mode: str = Form("chapter"), size: int = Form
     """读文件或粘贴的文字，按选的方式拆成若干集，先给用户看，不写数据库。"""
     _get(db, Project, pid)
     epub = None
-    source = "粘贴的文本"
+    source = _("粘贴的文本", "Pasted text")
     if file is not None and file.filename:
         source = file.filename
         data = await file.read(MAX_NOVEL + 1)
         if len(data) > MAX_NOVEL:
-            raise HTTPException(400, "文件不能超过 30MB")
+            raise HTTPException(400, _("文件不能超过 30MB", "File must not exceed 30MB"))
         suffix = Path(file.filename).suffix.lower()
         try:
             if suffix == ".epub":
@@ -211,7 +212,7 @@ async def import_preview(pid: int, mode: str = Form("chapter"), size: int = Form
             elif suffix in (".txt", ".md", ""):
                 text = novel.decode_text(data)
             else:
-                raise HTTPException(400, "只支持 TXT / EPUB / Markdown 文件")
+                raise HTTPException(400, _("只支持 TXT / EPUB / Markdown 文件", "Only TXT / EPUB / Markdown files are supported"))
         except novel.ImportErrorMsg as e:
             raise HTTPException(400, str(e)) from e
     try:
@@ -230,7 +231,7 @@ def import_commit(pid: int, body: S.ImportCommit, db: Session = Depends(get_db))
     p = _get(db, Project, pid)
     chapters = [c for c in body.chapters if c.text.strip()]
     if not chapters:
-        raise HTTPException(400, "没有选中任何一集")
+        raise HTTPException(400, _("没有选中任何一集", "No episodes selected"))
     start = max((e.index for e in p.episodes), default=0)
     created = []
     for n, c in enumerate(chapters, 1):

@@ -14,6 +14,7 @@ from ..config import MEDIA_DIR
 from ..models import Character, Project, Prop, Scene, Shot, Task
 from ..providers import cloud, comfyui, ffmpeg, mock
 from .errors import TaskAbort
+from ..i18n import _
 
 
 # ---------- 提示词 ----------
@@ -119,7 +120,7 @@ def _normalize_image(out: Path, rel: str) -> str:
         fmt = (Image.open(out).format or "PNG").lower()
     except OSError as e:
         out.unlink(missing_ok=True)
-        raise TaskAbort("下载回来的不是图片") from e
+        raise TaskAbort(_("下载回来的不是图片", "The downloaded file is not an image")) from e
     suffix = {"jpeg": ".jpg", "png": ".png", "webp": ".webp"}.get(fmt, ".png")
     if suffix != out.suffix:
         new_rel = rel[: -len(out.suffix)] + suffix
@@ -143,7 +144,7 @@ def _make_image(db: Session, task: Task, *, project: Project, title: str, prompt
 
     refs = [r for r in (refs or []) if (MEDIA_DIR / r).is_file()]
     if provider in cloud.PROVIDERS:
-        task.message = f"{cloud.PROVIDERS[provider]} 生成中…"
+        task.message = _(f"{cloud.provider_name(provider)} 生成中…", f"{cloud.provider_name(provider)} generating…")
         db.commit()
         rel = new_rel_path(project.id, folder, stem, ".png")
         try:
@@ -155,11 +156,12 @@ def _make_image(db: Session, task: Task, *, project: Project, title: str, prompt
         return _normalize_image(out, rel)
 
     if provider != "comfyui":
-        raise TaskAbort(f"未知的生图供应商：{provider}")
+        raise TaskAbort(_(f"未知的生图供应商：{provider}", f"Unknown image generation provider: {provider}"))
     use_ref = bool(refs and (cfg.get("ref_image_workflow") or "").strip())
     text = cfg.get("ref_image_workflow") if use_ref else cfg.get("image_workflow")
     if not (text or "").strip():
-        raise TaskAbort("还没有配置 ComfyUI 生图工作流：到「设置」里粘贴 API 格式的工作流 JSON")
+        raise TaskAbort(_("还没有配置 ComfyUI 生图工作流：到「设置」里粘贴 API 格式的工作流 JSON",
+                          "No ComfyUI image workflow configured yet: paste an API-format workflow JSON in Settings"))
     try:
         wf = comfyui.parse_workflow(text)
         with comfyui.Client(cfg) as client:
@@ -178,7 +180,8 @@ def _make_image(db: Session, task: Task, *, project: Project, title: str, prompt
             outputs = client.run(comfyui.fill(wf, values), _progress(db, task))
             files = comfyui.output_files(outputs, comfyui.IMAGE_EXTS)
             if not files:
-                raise comfyui.WorkflowError("工作流跑完了，但没有输出图片。检查是不是缺了「保存图像」节点")
+                raise comfyui.WorkflowError(_("工作流跑完了，但没有输出图片。检查是不是缺了「保存图像」节点",
+                                              "The workflow finished but produced no image. Check that it has a \"Save Image\" node"))
             rel = new_rel_path(project.id, folder, stem, Path(files[0]["filename"]).suffix.lower())
             client.download(files[0], MEDIA_DIR / rel)
             return rel
@@ -212,10 +215,11 @@ def _make_video(db: Session, task: Task, *, shot: Shot, project: Project) -> str
         return rel
 
     if provider != "comfyui":
-        raise TaskAbort(f"未知的生视频供应商：{provider}")
+        raise TaskAbort(_(f"未知的生视频供应商：{provider}", f"Unknown video generation provider: {provider}"))
     text = cfg.get("video_workflow") or ""
     if not text.strip():
-        raise TaskAbort("还没有配置 ComfyUI 图生视频工作流：到「设置」里粘贴 API 格式的工作流 JSON")
+        raise TaskAbort(_("还没有配置 ComfyUI 图生视频工作流：到「设置」里粘贴 API 格式的工作流 JSON",
+                          "No ComfyUI image-to-video workflow configured yet: paste an API-format workflow JSON in Settings"))
     fps = int(cfg.get("fps") or 16)
     try:
         wf = comfyui.parse_workflow(text)
@@ -235,7 +239,8 @@ def _make_video(db: Session, task: Task, *, shot: Shot, project: Project) -> str
             outputs = client.run(comfyui.fill(wf, values), _progress(db, task))
             files = comfyui.output_files(outputs, comfyui.VIDEO_EXTS)
             if not files:
-                raise comfyui.WorkflowError("工作流跑完了，但没有输出视频。请用能保存 mp4 的节点（如 Video Combine / 保存视频）")
+                raise comfyui.WorkflowError(_("工作流跑完了，但没有输出视频。请用能保存 mp4 的节点（如 Video Combine / 保存视频）",
+                                              "The workflow finished but produced no video. Use a node that saves mp4 (e.g. Video Combine / Save Video)"))
             f = files[0]
             if Path(f["filename"]).suffix.lower() == ".mp4":
                 client.download(f, MEDIA_DIR / rel)
@@ -254,54 +259,54 @@ def _make_video(db: Session, task: Task, *, shot: Shot, project: Project) -> str
 def character_image(db: Session, task: Task) -> str:
     c = db.get(Character, task.target_id)
     if not c:
-        raise TaskAbort("角色已被删除")
+        raise TaskAbort(_("角色已被删除", "The character has been deleted"))
     p = c.project
     rel = _make_image(db, task, project=p, title=f"角色 · {c.name}", prompt=character_prompt(db, c, p.style),
                       aspect="16:9", rel_stem=("assets", f"char{c.id}"))
     set_file(db, c, "ref_image", rel)
-    return f"「{c.name}」参考图已生成"
+    return _(f"「{c.name}」参考图已生成", f"Reference image for \"{c.name}\" generated")
 
 
 def scene_image(db: Session, task: Task) -> str:
     s = db.get(Scene, task.target_id)
     if not s:
-        raise TaskAbort("场景已被删除")
+        raise TaskAbort(_("场景已被删除", "The scene has been deleted"))
     p = s.project
     rel = _make_image(db, task, project=p, title=f"场景 · {s.name}", prompt=scene_prompt(db, s, p.style),
                       aspect=p.aspect_ratio, rel_stem=("assets", f"scene{s.id}"))
     set_file(db, s, "ref_image", rel)
-    return f"「{s.name}」参考图已生成"
+    return _(f"「{s.name}」参考图已生成", f"Reference image for \"{s.name}\" generated")
 
 
 def prop_image(db: Session, task: Task) -> str:
     pr = db.get(Prop, task.target_id)
     if not pr:
-        raise TaskAbort("道具已被删除")
+        raise TaskAbort(_("道具已被删除", "The prop has been deleted"))
     p = pr.project
     rel = _make_image(db, task, project=p, title=f"道具 · {pr.name}", prompt=prop_prompt(db, pr, p.style),
                       aspect="1:1", rel_stem=("assets", f"prop{pr.id}"))
     set_file(db, pr, "ref_image", rel)
-    return f"「{pr.name}」参考图已生成"
+    return _(f"「{pr.name}」参考图已生成", f"Reference image for \"{pr.name}\" generated")
 
 
 def shot_image(db: Session, task: Task) -> str:
     s = db.get(Shot, task.target_id)
     if not s:
-        raise TaskAbort("镜头已被删除")
+        raise TaskAbort(_("镜头已被删除", "The shot has been deleted"))
     p = s.episode.project
     rel = _make_image(db, task, project=p, title=f"第{s.episode.index}集 · 镜头 #{s.index}",
                       prompt=shot_prompt(s, p), aspect=p.aspect_ratio,
                       rel_stem=(f"e{s.episode_id}", f"shot{s.id}_frame"), refs=shot_refs(s, p))
     set_file(db, s, "image_path", rel)
-    return f"镜头 #{s.index} 首帧已生成"
+    return _(f"镜头 #{s.index} 首帧已生成", f"Shot #{s.index} first frame generated")
 
 
 def shot_video(db: Session, task: Task) -> str:
     s = db.get(Shot, task.target_id)
     if not s:
-        raise TaskAbort("镜头已被删除")
+        raise TaskAbort(_("镜头已被删除", "The shot has been deleted"))
     if not s.image_path or not (MEDIA_DIR / s.image_path).is_file():
-        raise TaskAbort(f"镜头 #{s.index} 还没有首帧图，先生成首帧")
+        raise TaskAbort(_(f"镜头 #{s.index} 还没有首帧图，先生成首帧", f"Shot #{s.index} has no first frame yet — generate it first"))
     rel = _make_video(db, task, shot=s, project=s.episode.project)
     set_file(db, s, "video_path", rel)
-    return f"镜头 #{s.index} 视频已生成（{s.duration:g} 秒）"
+    return _(f"镜头 #{s.index} 视频已生成（{s.duration:g} 秒）", f"Shot #{s.index} video generated ({s.duration:g}s)")
