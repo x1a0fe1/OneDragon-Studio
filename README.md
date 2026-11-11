@@ -1,5 +1,7 @@
 # OneDragon Studio · AI漫剧一条龙
 
+**简体中文** | [English](README.en.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [العربية](README.ar.md)
+
 从剧本到成片的 AI 漫剧流水线，Web 界面，本地部署。
 
 ```
@@ -8,7 +10,7 @@
 
 - **流程化**：每一步的产物都存下来、都能在网页里改；改了哪一步就从哪一步重跑，不用推倒重来。
 - **后台任务队列**：耗时操作排队执行，失败自动重试，关掉网页、重启服务都能接着跑。不需要 Redis / Docker。
-- **模型可插拔**：文本走 OpenAI 兼容协议（DeepSeek、通义、豆包、Ollama……）；生图、生视频接 ComfyUI（本机或远程 GPU 服务器）。
+- **模型可插拔**：文本走 OpenAI 兼容协议（DeepSeek、通义、豆包、Ollama……）；生图、生视频可选云端平台（阿里云百炼、火山方舟，不用 GPU）或 ComfyUI（本机或远程 GPU 服务器）。
 - **竖屏优先**：默认 9:16，面向快手 / 抖音的短剧与漫剧。
 
 ## 开发进度
