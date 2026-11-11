@@ -12,7 +12,7 @@
 
 - **ワークフロー型**：各ステップの成果物はすべて保存され、Web ページ上で編集できます。どこかのステップを修正したら、そのステップから再実行するだけで済み、最初からやり直す必要はありません。
 - **バックグラウンドのタスクキュー**：時間のかかる処理はキューに入れて実行され、失敗すると自動でリトライします。Web ページを閉じても、サービスを再起動しても、続きから処理を再開します。Redis や Docker は不要です。
-- **モデルを差し替え可能**：テキスト生成は OpenAI 互換プロトコルを使用します（DeepSeek、Tongyi（通义）、Doubao（豆包）、Ollama など）。画像生成・動画生成は、クラウドプラットフォーム（Alibaba Cloud Model Studio（阿里云百炼）、Volcano Engine Ark（火山方舟）。GPU 不要）か ComfyUI（ローカルまたはリモートの GPU サーバー）から選べます。
+- **モデルを差し替え可能**：テキスト生成には DeepSeek、OpenAI、Google Gemini、Anthropic Claude、Azure OpenAI、OpenRouter、Alibaba Cloud Model Studio、Volcano Engine Ark、Ollama のプリセットを内蔵し、任意の OpenAI 互換 API にも対応します（海外 API 用のプロキシも設定可能）。画像生成・動画生成は、クラウドプラットフォーム（Alibaba Cloud Model Studio（阿里云百炼）、Volcano Engine Ark（火山方舟）。GPU 不要）か ComfyUI（ローカルまたはリモートの GPU サーバー）から選べます。
 - **縦型動画優先**：デフォルトは 9:16 で、快手（Kuaishou）／抖音（Douyin）向けのショートドラマやコミックドラマを想定しています。
 
 ## 開発状況

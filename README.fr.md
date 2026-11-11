@@ -12,7 +12,7 @@ Script → Découpage IA en plans → Ressources personnages/décors → Premiè
 
 - **Processus par étapes** : le résultat de chaque étape est enregistré et modifiable dans la page web ; si vous modifiez une étape, seule la suite est relancée à partir de celle-ci, sans tout recommencer.
 - **File de tâches en arrière-plan** : les opérations longues sont mises en file d’attente, relancées automatiquement en cas d’échec, et reprennent même si vous fermez la page ou redémarrez le service. Ni Redis ni Docker ne sont nécessaires.
-- **Modèles interchangeables** : le texte passe par le protocole compatible OpenAI (DeepSeek, Tongyi, Doubao, Ollama…) ; pour la génération d’images et de vidéos, vous pouvez choisir une plateforme cloud (Alibaba Cloud Model Studio (阿里云百炼), Volcano Engine Ark (火山方舟), sans GPU) ou ComfyUI (en local ou sur un serveur GPU distant).
+- **Modèles interchangeables** : pour le texte, des préréglages sont intégrés pour DeepSeek, OpenAI, Google Gemini, Anthropic Claude, Azure OpenAI, OpenRouter, Alibaba Cloud Model Studio, Volcano Engine Ark, Ollama, ainsi que toute API compatible OpenAI, avec un proxy configurable pour les API étrangères ; pour la génération d’images et de vidéos, vous pouvez choisir une plateforme cloud (Alibaba Cloud Model Studio (阿里云百炼), Volcano Engine Ark (火山方舟), sans GPU) ou ComfyUI (en local ou sur un serveur GPU distant).
 - **Vertical d’abord** : format 9:16 par défaut, pensé pour les mini-séries et BD animées de Kuaishou / Douyin.
 
 ## Avancement du développement

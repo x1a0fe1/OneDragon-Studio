@@ -12,7 +12,7 @@ Guion → Storyboard con IA → Recursos de personajes/escenarios → Primer fot
 
 - **Flujo por etapas**: el resultado de cada paso se guarda y se puede editar en la web; si cambias un paso, se vuelve a ejecutar desde ahí, sin empezar de cero.
 - **Cola de tareas en segundo plano**: las operaciones largas se ponen en cola, se reintentan automáticamente si fallan y siguen ejecutándose aunque cierres la página o reinicies el servicio. No necesita Redis / Docker.
-- **Modelos intercambiables**: el texto usa el protocolo compatible con OpenAI (DeepSeek, Tongyi, Doubao, Ollama…); para generar imágenes y videos puedes elegir plataformas en la nube (Alibaba Cloud Model Studio (阿里云百炼), Volcano Engine Ark (火山方舟), sin GPU) o ComfyUI (en tu equipo o en un servidor GPU remoto).
+- **Modelos intercambiables**: para texto incluye ajustes predefinidos de DeepSeek, OpenAI, Google Gemini, Anthropic Claude, Azure OpenAI, OpenRouter, Alibaba Cloud Model Studio, Volcano Engine Ark, Ollama, además de cualquier API compatible con OpenAI, con proxy configurable para APIs del extranjero; para generar imágenes y videos puedes elegir plataformas en la nube (Alibaba Cloud Model Studio (阿里云百炼), Volcano Engine Ark (火山方舟), sin GPU) o ComfyUI (en tu equipo o en un servidor GPU remoto).
 - **Formato vertical primero**: 9:16 por defecto, pensado para microdramas y cómics dramatizados en Kuaishou / Douyin.
 
 ## Progreso del desarrollo

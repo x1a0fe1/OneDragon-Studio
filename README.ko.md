@@ -12,7 +12,7 @@
 
 - **단계별 워크플로**: 각 단계의 결과물이 모두 저장되고 웹 페이지에서 수정할 수 있습니다. 수정한 단계부터 다시 실행하면 되므로 처음부터 다시 할 필요가 없습니다.
 - **백그라운드 작업 큐**: 시간이 오래 걸리는 작업은 큐에 넣어 실행하고, 실패하면 자동으로 재시도하며, 웹 페이지를 닫거나 서비스를 재시작해도 이어서 실행됩니다. Redis / Docker가 필요 없습니다.
-- **교체 가능한 모델**: 텍스트는 OpenAI 호환 프로토콜(DeepSeek, Tongyi, Doubao, Ollama 등)을 사용합니다. 이미지·영상 생성은 클라우드 플랫폼(Alibaba Cloud Model Studio(阿里云百炼), Volcano Engine Ark(火山方舟), GPU 불필요) 또는 ComfyUI(로컬 또는 원격 GPU 서버) 중에서 선택할 수 있습니다.
+- **교체 가능한 모델**: 텍스트 LLM은 DeepSeek, OpenAI, Google Gemini, Anthropic Claude, Azure OpenAI, OpenRouter, Alibaba Cloud Model Studio, Volcano Engine Ark, Ollama 프리셋을 기본 제공하며, 모든 OpenAI 호환 API도 사용할 수 있습니다(해외 API용 프록시 설정 가능). 이미지·영상 생성은 클라우드 플랫폼(Alibaba Cloud Model Studio(阿里云百炼), Volcano Engine Ark(火山方舟), GPU 불필요) 또는 ComfyUI(로컬 또는 원격 GPU 서버) 중에서 선택할 수 있습니다.
 - **세로 화면 우선**: 기본 비율은 9:16이며, Kuaishou / Douyin용 숏드라마와 만화 드라마를 대상으로 합니다.
 
 ## 개발 진행 상황
