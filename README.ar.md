@@ -131,12 +131,9 @@ frontend/              صفحة الويب بـ React + Vite
 
 إذا وفّر عليك هذا المشروع بعض الوقت، فيسعدني أن تدعوني إلى كوب شاي بالحليب 🧋 (يوجد مدخل لذلك أيضًا أسفل الشريط الجانبي في صفحة الويب).
 
-<table>
-  <tr>
-    <td align="center"><img src="frontend/public/donate/wechat.jpg" width="200" alt="رمز الدفع عبر WeChat"><br>WeChat</td>
-    <td align="center"><img src="frontend/public/donate/alipay.jpg" width="200" alt="رمز الدفع عبر Alipay"><br>Alipay</td>
-  </tr>
-</table>
+<p align="center"><a href="https://www.paypal.com/ncp/payment/XZ9UJK3EX4JTY"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="تبرّع عبر PayPal" height="40"></a></p>
+
+يمكنك الدفع من رصيد PayPal أو ببطاقة ائتمان/خصم.
 
 ### التواصل مع المؤلف
 

@@ -117,12 +117,9 @@ API Keys, scripts and generated assets are stored only on your machine in `backe
 
 If this project saved you some time, feel free to buy me a milk tea 🧋 (there's also a link at the bottom of the web sidebar).
 
-<table>
-  <tr>
-    <td align="center"><img src="frontend/public/donate/wechat.jpg" width="200" alt="WeChat Pay QR code"><br>WeChat Pay</td>
-    <td align="center"><img src="frontend/public/donate/alipay.jpg" width="200" alt="Alipay QR code"><br>Alipay</td>
-  </tr>
-</table>
+<p align="center"><a href="https://www.paypal.com/ncp/payment/XZ9UJK3EX4JTY"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate with PayPal" height="40"></a></p>
+
+Pay with your PayPal balance or a credit/debit card.
 
 ### Contact the Author
 

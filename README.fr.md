@@ -117,12 +117,9 @@ Les clés API, les scripts et les contenus générés sont stockés uniquement s
 
 Si ce projet vous a fait gagner du temps, n’hésitez pas à m’offrir un thé au lait 🧋 (un accès est aussi disponible en bas de la barre latérale de l’interface web).
 
-<table>
-  <tr>
-    <td align="center"><img src="frontend/public/donate/wechat.jpg" width="200" alt="QR code de paiement WeChat"><br>WeChat</td>
-    <td align="center"><img src="frontend/public/donate/alipay.jpg" width="200" alt="QR code de paiement Alipay"><br>Alipay</td>
-  </tr>
-</table>
+<p align="center"><a href="https://www.paypal.com/ncp/payment/XZ9UJK3EX4JTY"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="Faire un don avec PayPal" height="40"></a></p>
+
+Paiement par solde PayPal ou carte bancaire.
 
 ### Contacter l’auteur
 

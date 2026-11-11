@@ -117,12 +117,9 @@ API Key, 대본, 생성된 에셋은 모두 로컬의 `backend/data/`에만 저�
 
 이 프로젝트 덕분에 시간을 아끼셨다면 밀크티 한 잔 사주세요 🧋 (웹 페이지 사이드바 하단에도 입구가 있습니다).
 
-<table>
-  <tr>
-    <td align="center"><img src="frontend/public/donate/wechat.jpg" width="200" alt="WeChat Pay 결제 QR 코드"><br>WeChat Pay</td>
-    <td align="center"><img src="frontend/public/donate/alipay.jpg" width="200" alt="Alipay 결제 QR 코드"><br>Alipay</td>
-  </tr>
-</table>
+<p align="center"><a href="https://www.paypal.com/ncp/payment/XZ9UJK3EX4JTY"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal로 후원하기" height="40"></a></p>
+
+PayPal 잔액 또는 신용카드/체크카드로 결제할 수 있습니다.
 
 ### 작성자 연락처
 

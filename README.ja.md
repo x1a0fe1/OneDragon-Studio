@@ -117,12 +117,9 @@ API Key、脚本、生成された素材はすべてローカルの `backend/dat
 
 このプロジェクトで時間を節約できたなら、ミルクティーを 1 杯おごっていただけるとうれしいです 🧋（Web ページのサイドバー下部にも入口があります）。
 
-<table>
-  <tr>
-    <td align="center"><img src="frontend/public/donate/wechat.jpg" width="200" alt="WeChat Pay 送金用 QR コード"><br>WeChat Pay</td>
-    <td align="center"><img src="frontend/public/donate/alipay.jpg" width="200" alt="Alipay 送金用 QR コード"><br>Alipay</td>
-  </tr>
-</table>
+<p align="center"><a href="https://www.paypal.com/ncp/payment/XZ9UJK3EX4JTY"><img src="https://img.shields.io/badge/PayPal-Donate-00457C?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal で支援する" height="40"></a></p>
+
+PayPal 残高またはクレジットカード / デビットカードでお支払いいただけます。
 
 ### 作者への連絡
 

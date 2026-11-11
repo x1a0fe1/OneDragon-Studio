@@ -123,6 +123,8 @@ API Key、剧本、生成的素材都只存在本机 `backend/data/`，不会上
   </tr>
 </table>
 
+海外用户可以用 [PayPal](https://www.paypal.com/ncp/payment/XZ9UJK3EX4JTY) 支付（PayPal 余额或信用卡）。
+
 ### 联系作者
 
 - 邮箱：[bajiebujiese@126.com](mailto:bajiebujiese@126.com)
