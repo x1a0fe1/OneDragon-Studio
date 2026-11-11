@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PAYPAL_URL } from "../donate";
 
 /** 收款码放在 frontend/public/donate/ 下；哪张图不存在，对应的卡片就自动隐藏。 */
 const CODES = [
@@ -96,6 +97,12 @@ export default function DonateButton({ variant = "button", label = "请我喝奶
               </div>
             ) : (
               <p className="error small">收款码图片加载失败：请确认 start.bat 的窗口还开着（服务在运行），然后关闭弹窗再点一次。</p>
+            )}
+            {PAYPAL_URL && (
+              <div className="paypal-row">
+                <a className="paypal-btn" href={PAYPAL_URL} target="_blank" rel="noreferrer">PayPal</a>
+                <span className="muted small">海外用户 / Overseas: PayPal or card</span>
+              </div>
             )}
             <div className="contact">
               <div className="contact-title">联系作者 <span className="muted small">问题反馈、合作、交流都可以</span></div>

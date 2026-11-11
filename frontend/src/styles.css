@@ -383,3 +383,8 @@ input.search { min-width: 0; width: 260px; max-width: 100%; }
 .vendor-text small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .key-link { align-self: flex-start; }
 @media (max-width: 760px) { .vendor-grid { grid-template-columns: 1fr 1fr; } .vendor { padding: 8px; gap: 8px; } .vendor-text small { display: none; } }
+
+/* 奶茶弹窗里的 PayPal（donate.ts 里填了链接才显示） */
+.paypal-row { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 2px; }
+.paypal-btn { display: inline-block; padding: 7px 28px; border-radius: 99px; background: #ffc439; color: #003087; font-weight: 800; font-style: italic; letter-spacing: .02em; }
+.paypal-btn:hover { text-decoration: none; filter: brightness(.96); }
