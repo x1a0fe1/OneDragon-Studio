@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | **Español** | [العربية](README.ar.md)
 
-> Nota: por ahora, la interfaz web solo está disponible en chino simplificado.
+> Nota: la interfaz web está disponible en inglés y chino simplificado (cámbiala con «中 / EN» al pie de la barra lateral).
 
 Una línea de producción de cómics dramatizados con IA, del guion al video final, con interfaz web y despliegue local.
 

@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | **English** | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [العربية](README.ar.md)
 
-> **Note:** The web interface is currently available in Simplified Chinese only.
+> **Note:** The web interface is available in English and Simplified Chinese; switch with 「中 / EN」 at the bottom of the sidebar.
 
 An AI comic-drama pipeline from script to finished video, with a web interface, deployed locally.
 

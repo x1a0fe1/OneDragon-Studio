@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | **Français** | [Español](README.es.md) | [العربية](README.ar.md)
 
-> L’interface web est pour l’instant disponible uniquement en chinois simplifié.
+> L’interface web est disponible en anglais et en chinois simplifié (bouton « 中 / EN » en bas de la barre latérale).
 
 Une chaîne de production de BD animées par IA (AI comic drama), du script à la vidéo finale, avec interface web et déploiement local.
 
