@@ -24,6 +24,7 @@ Script → Découpage IA en plans → Ressources personnages/décors → Premiè
 | 3 | Doublage des répliques, sous-titres, montage final (mention IA), téléchargement MP4 / SRT | ✅ |
 | 4 | Import d’histoires ou de romans avec découpage en chapitres, accessoires, médiathèque partagée entre projets, configuration des prompts, journal IA | ✅ |
 | 5 | Génération d’images et de vidéos dans le cloud (Alibaba Cloud Model Studio (阿里云百炼) / Volcano Engine Ark (火山方舟)), épisode en un clic, interface à barre latérale et page d’accueil | ✅ |
+| 6 | LLM texte multi-fournisseurs (OpenAI / Gemini / Claude / Azure, etc.), interface bilingue chinois/anglais, README multilingue, dons via PayPal | ✅ |
 
 ## Démarrage rapide (Windows)
 

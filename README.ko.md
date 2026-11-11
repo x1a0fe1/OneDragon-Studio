@@ -24,6 +24,7 @@
 | 3 | 대사 더빙, 자막, 최종 영상 합성(AI 표시), MP4 / SRT 다운로드 | ✅ |
 | 4 | 이야기·소설 가져오기 및 챕터 분할, 소품, 프로젝트 간 에셋 라이브러리, 프롬프트 설정, AI 로그 | ✅ |
 | 5 | 클라우드 이미지·영상 생성(Alibaba Cloud Model Studio(阿里云百炼) / Volcano Engine Ark(火山方舟)), 원클릭 완성, 사이드바 UI 및 시작 페이지 | ✅ |
+| 6 | 텍스트 LLM 멀티 벤더 지원(OpenAI / Gemini / Claude / Azure 등), 중영 이중 언어 UI, 다국어 README, PayPal 후원 | ✅ |
 
 ## 빠른 시작(Windows)
 

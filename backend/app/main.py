@@ -46,7 +46,7 @@ async def _request_lang(request: Request):
     set_lang(request.headers.get("x-lang"))
 
 
-app = FastAPI(title="OneDragon Studio", version="0.5.0", lifespan=lifespan, dependencies=[Depends(_request_lang)])
+app = FastAPI(title="OneDragon Studio", version="0.6.0", lifespan=lifespan, dependencies=[Depends(_request_lang)])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5174", "http://localhost:5174"],

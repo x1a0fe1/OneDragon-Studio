@@ -272,9 +272,9 @@ export default function SettingsPage() {
       </div>
 
       <div className="card about">
-        <h2>{t("关于", "About")}</h2>
+        <h2>{t("关于", "About")} <small className="muted">v{__APP_VERSION__}</small></h2>
         <p>{t("OneDragon Studio（AI漫剧一条龙）· MIT 开源许可 · 数据只存在本机 ", "OneDragon Studio · MIT License · Data is stored only on this machine in ")}<code>backend/data/</code></p>
-        <p className="muted small">{t("没有会员、没有广告。觉得好用的话，欢迎请作者喝杯奶茶，也欢迎提建议。", "No subscriptions, no ads. If you find it useful, feel free to buy the author a bubble tea, and suggestions are always welcome.")}</p>
+        <p className="muted small">{t("没有会员、没有广告。觉得好用的话，欢迎请作者喝杯奶茶，也欢迎提建议。", "No subscriptions, no ads. If you find it useful, feel free to buy the author a milk tea, and suggestions are always welcome.")}</p>
         <DonateButton />
       </div>
 

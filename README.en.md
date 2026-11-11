@@ -24,6 +24,7 @@ Script → AI storyboard → Character/scene assets → Shot first frames → Im
 | 3 | Dialogue voice-over, subtitles, final video composition (AI label), MP4 / SRT download | ✅ |
 | 4 | Story/novel import with chapter splitting, props, cross-project asset library, prompt configuration, AI logs | ✅ |
 | 5 | Cloud image/video generation (Alibaba Cloud Model Studio / Volcano Engine Ark), one-click episode, sidebar UI and welcome page | ✅ |
+| 6 | Multi-vendor text LLMs (OpenAI / Gemini / Claude / Azure, etc.), bilingual Chinese/English UI, multilingual README, PayPal donations | ✅ |
 
 ## Quick Start (Windows)
 

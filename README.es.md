@@ -24,6 +24,7 @@ Guion → Storyboard con IA → Recursos de personajes/escenarios → Primer fot
 | 3 | Voz para los diálogos, subtítulos, montaje del video final (con marca de IA), descarga de MP4 / SRT | ✅ |
 | 4 | Importación de historias o novelas y división en capítulos, objetos, biblioteca de recursos entre proyectos, configuración de prompts, registro de IA | ✅ |
 | 5 | Generación de imágenes y videos en la nube (Alibaba Cloud Model Studio (阿里云百炼) / Volcano Engine Ark (火山方舟)), episodio en un clic, interfaz con barra lateral y página de bienvenida | ✅ |
+| 6 | LLM de texto de varios proveedores (OpenAI / Gemini / Claude / Azure, etc.), interfaz bilingüe chino/inglés, README multilingüe, donaciones con PayPal | ✅ |
 
 ## Inicio rápido (Windows)
 
