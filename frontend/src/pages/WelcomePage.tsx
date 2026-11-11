@@ -37,7 +37,7 @@ export default function WelcomePage() {
     <div className="page welcome">
       <div className="hero">
         <div className="hero-logo"><img src="/favicon.svg" alt="" /></div>
-        <h1>欢迎使用 OneDragon Studio</h1>
+        <h1>欢迎使用一条龙 OneDragon Studio</h1>
         <p>从一个故事到一集能发布的竖屏漫剧：拆分镜、出图、出视频、配音、字幕、合成，一条龙做完。</p>
         {status && (
           <div className="hero-stats">
