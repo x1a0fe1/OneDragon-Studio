@@ -21,7 +21,6 @@ def health():
 @router.get("/status")
 def system_status(db: Session = Depends(get_db)):
     """欢迎页的系统状态：只做连通性检查，不调用大模型对话（不花 tokens、不记 AI 日志）。"""
-    import httpx
 
     from ..models import Episode, Project
     from ..providers import ffmpeg
@@ -30,22 +29,17 @@ def system_status(db: Session = Depends(get_db)):
     items = []
 
     llm_cfg = cfg.get("llm") or {}
-    if not (llm_cfg.get("base_url") and llm_cfg.get("model")):
+    name = f"文本大模型（{llm_cfg.get('model') or '未选模型'}）"
+    if not llm_cfg.get("model") or (llm.protocol(llm_cfg) != "anthropic" and not llm_cfg.get("base_url")):
         items.append({"key": "llm", "name": "文本大模型", "state": "error", "detail": "还没有配置地址和模型"})
-    elif not llm_cfg.get("api_key") and "127.0.0.1" not in llm_cfg["base_url"] and "localhost" not in llm_cfg["base_url"]:
-        items.append({"key": "llm", "name": f"文本大模型（{llm_cfg['model']}）", "state": "error", "detail": "还没有填 API Key"})
     else:
-        url = llm.endpoint(llm_cfg["base_url"]).rsplit("/chat/completions", 1)[0] + "/models"
-        headers = {"Authorization": f"Bearer {llm_cfg['api_key']}"} if llm_cfg.get("api_key") else {}
         try:
-            r = httpx.get(url, headers=headers, timeout=5)
-            if r.status_code in (401, 403):
-                state, detail = "error", "API Key 无效或没有权限"
-            else:
-                state, detail = "ok", "可以连接"
-        except httpx.HTTPError:
-            state, detail = "error", "连接失败，检查地址和网络"
-        items.append({"key": "llm", "name": f"文本大模型（{llm_cfg['model']}）", "state": state, "detail": detail})
+            llm.list_models(llm_cfg, timeout=8)  # 只查模型列表，不花 tokens
+            items.append({"key": "llm", "name": name, "state": "ok", "detail": "可以连接"})
+        except llm.LLMError as e:
+            items.append({"key": "llm", "name": name, "state": "error", "detail": str(e)[:120]})
+        except Exception:  # noqa: BLE001
+            items.append({"key": "llm", "name": name, "state": "error", "detail": "连接失败，检查地址、网络或代理"})
 
     from ..providers import cloud
     providers = {cfg.get("image_provider"), cfg.get("video_provider")}
@@ -116,6 +110,15 @@ def test_cloud(provider: str, db: Session = Depends(get_db)):
     try:
         return {"ok": True, "message": cloud.test(provider, settings_store.get(db, provider) or {})}
     except (cloud.CloudAbort, cloud.CloudError) as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@router.post("/settings/llm-models")
+def llm_models(db: Session = Depends(get_db)):
+    """按当前（已保存的）大模型设置，从接口实时拉取模型列表。"""
+    try:
+        return {"models": llm.list_models(settings_store.get(db, "llm") or {})}
+    except llm.LLMError as e:
         raise HTTPException(400, str(e)) from e
 
 

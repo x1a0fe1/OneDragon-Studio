@@ -9,11 +9,22 @@ from .models import Setting
 MASK = "********"
 
 
+_VENDOR_HOSTS = {
+    "deepseek.com": "deepseek", "api.openai.com": "openai", "generativelanguage.googleapis.com": "gemini",
+    "anthropic.com": "anthropic", "openai.azure.com": "azure", "openrouter.ai": "openrouter",
+    "dashscope": "aliyun", "volces.com": "volcengine", ":11434": "ollama",
+}
+
+
 def get_all(db: Session) -> dict:
     data = copy.deepcopy(DEFAULT_SETTINGS)
     for row in db.query(Setting).all():
         if isinstance(data.get(row.key), dict) and isinstance(row.value, dict):
             data[row.key].update(row.value)
+            if row.key == "llm" and "vendor" not in row.value:
+                # 老版本保存的设置没有 vendor：按接口地址猜是哪家，猜不到算自定义
+                base = row.value.get("base_url") or ""
+                data["llm"]["vendor"] = next((v for h, v in _VENDOR_HOSTS.items() if h in base), "custom")
         else:
             data[row.key] = row.value
     return data

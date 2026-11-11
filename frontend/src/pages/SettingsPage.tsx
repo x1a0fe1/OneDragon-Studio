@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from "react";
 import { api, Settings } from "../api";
 import DonateButton from "../components/DonateButton";
 import VoicePicker from "../components/VoicePicker";
+import { LLMSettings } from "../components/LLMSettings";
 
 const PLACEHOLDERS: Record<string, string> = {
   prompt: "正向提示词",
@@ -61,20 +62,15 @@ function WorkflowField(props: { title: string; hint: string; required: string[];
   );
 }
 
-const LLM_PRESETS: Record<string, { base_url: string; model: string }> = {
-  DeepSeek: { base_url: "https://api.deepseek.com", model: "deepseek-chat" },
-  "通义千问（百炼）": { base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus" },
-  "火山方舟（豆包）": { base_url: "https://ark.cn-beijing.volces.com/api/v3", model: "" },
-  "Ollama（本机）": { base_url: "http://127.0.0.1:11434/v1", model: "qwen3:8b" },
-};
 
 export default function SettingsPage() {
   const [s, setS] = useState<Settings | null>(null);
   const [msg, setMsg] = useState("");
   const [testing, setTesting] = useState(false);
+  const [savedVendor, setSavedVendor] = useState("");
 
   useEffect(() => {
-    api.settings().then(setS).catch((e) => setMsg(e.message));
+    api.settings().then((v) => { setS(v); setSavedVendor(v.llm?.vendor ?? ""); }).catch((e) => setMsg(e.message));
   }, []);
   if (!s) return <div className="page muted">{msg || "加载中…"}</div>;
 
@@ -83,7 +79,9 @@ export default function SettingsPage() {
   async function save() {
     setMsg("");
     try {
-      setS(await api.saveSettings(s!));
+      const saved = await api.saveSettings(s!);
+      setS(saved);
+      setSavedVendor(saved.llm.vendor);
       setMsg("已保存");
     } catch (e: any) {
       setMsg("保存失败：" + e.message);
@@ -95,6 +93,7 @@ export default function SettingsPage() {
     setMsg("");
     try {
       await api.saveSettings(s!);
+      setSavedVendor(s!.llm.vendor);
       const r = await api.testComfyUI();
       setMsg(`ComfyUI 连接成功：${r.version ? "v" + r.version + "，" : ""}${r.device || "未知设备"}${r.vram_gb ? `，显存 ${r.vram_gb} GB` : ""}`);
     } catch (e: any) {
@@ -109,6 +108,7 @@ export default function SettingsPage() {
     setMsg("");
     try {
       await api.saveSettings(s!);
+      setSavedVendor(s!.llm.vendor);
       setMsg((await api.testCloud(provider)).message);
     } catch (e: any) {
       setMsg("连接失败：" + e.message);
@@ -122,6 +122,7 @@ export default function SettingsPage() {
     setMsg("");
     try {
       await api.saveSettings(s!);
+      setSavedVendor(s!.llm.vendor);
       const r = await api.testLLM();
       setMsg(`连接成功，模型回复：${r.reply}`);
     } catch (e: any) {
@@ -136,27 +137,7 @@ export default function SettingsPage() {
       <h1>系统设置</h1>
       <p className="muted">文本大模型、生图生视频（ComfyUI）、配音和合成成片的设置。</p>
 
-      <div className="card">
-        <h2>文本大模型 <small className="muted">用于拆分镜、写提示词；OpenAI 兼容协议</small></h2>
-        <div className="presets">
-          快速填写：
-          {Object.entries(LLM_PRESETS).map(([k, v]) => (
-            <button key={k} className="link" onClick={() => setS({ ...s, llm: { ...s.llm, ...v } })}>{k}</button>
-          ))}
-        </div>
-        <div className="field-grid">
-          <label className="span2">接口地址<input value={s.llm.base_url} onChange={(e) => set("llm", "base_url", e.target.value)} /></label>
-          <label>模型名<input value={s.llm.model} onChange={(e) => set("llm", "model", e.target.value)} /></label>
-          <label>温度<input type="number" step={0.1} min={0} max={2} value={s.llm.temperature ?? ""} onChange={(e) => set("llm", "temperature", e.target.value === "" ? null : Number(e.target.value))} /></label>
-          <label className="span2">API Key
-            <input type="password" autoComplete="off" value={s.llm.api_key} placeholder="在这里填你自己的 Key；只存在本机数据库"
-              onChange={(e) => set("llm", "api_key", e.target.value)} />
-          </label>
-        </div>
-        <div className="actions">
-          <button onClick={test} disabled={testing}>{testing ? "测试中…" : "保存并测试连接"}</button>
-        </div>
-      </div>
+      <LLMSettings s={s} setS={setS} onTest={test} testing={testing} savedVendor={savedVendor} />
 
       <div className="card">
         <h2>生图 / 生视频</h2>

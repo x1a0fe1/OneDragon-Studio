@@ -202,6 +202,7 @@ export const api = {
   settings: () => req<Settings>("GET", "/api/settings"),
   saveSettings: (b: Settings) => req<Settings>("PUT", "/api/settings", b),
   testLLM: () => req<{ ok: boolean; reply: string }>("POST", "/api/settings/test-llm"),
+  llmModels: () => req<{ models: string[] }>("POST", "/api/settings/llm-models"),
   testCloud: (provider: "aliyun" | "volcengine") => req<{ ok: boolean; message: string }>("POST", `/api/settings/test-cloud/${provider}`),
   pipeline: (eid: number, b: { target_seconds: number; redo_storyboard: boolean; with_video: boolean }) =>
     req<Task>("POST", `/api/episodes/${eid}/pipeline`, b),

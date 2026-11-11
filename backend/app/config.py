@@ -14,6 +14,9 @@ MEDIA_DIR.mkdir(exist_ok=True)
 # 设置项默认值；前端「设置」页可改
 DEFAULT_SETTINGS = {
     "llm": {
+        "vendor": "deepseek",        # 前端预设用来显示选中了哪家；后端只看 provider
+        "provider": "openai",        # 协议：openai（OpenAI 兼容）| anthropic（Claude 官方 SDK）| azure（Azure OpenAI）
+        "proxy": "",                 # 访问海外接口用的代理，如 http://127.0.0.1:10809；留空不走代理
         "base_url": "https://api.deepseek.com",
         "api_key": "",
         "model": "deepseek-chat",
