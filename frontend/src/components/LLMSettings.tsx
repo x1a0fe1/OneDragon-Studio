@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api, Settings } from "../api";
 import { t } from "../i18n";
+import ReferralLink from "./ReferralLink";
 
 type Protocol = "openai" | "anthropic" | "azure";
 
@@ -45,6 +46,9 @@ export const VENDORS = (): Vendor[] => [
   { key: "volcengine", name: t("火山方舟", "Volcano Engine Ark"), hint: t("豆包，模型名可填接入点", "Doubao; model can be an endpoint ID"), color: "#3370ff", protocol: "openai",
     base_url: "https://ark.cn-beijing.volces.com/api/v3", model: "", models: [],
     keyUrl: "https://console.volcengine.com/ark" },
+  { key: "siliconflow", name: t("硅基流动", "SiliconFlow"), hint: t("一个 Key 用 DeepSeek、Qwen 等开源模型", "One key for DeepSeek, Qwen and other open models"), color: "#7c3aed", protocol: "openai",
+    base_url: "https://api.siliconflow.cn/v1", model: "deepseek-ai/DeepSeek-V3", models: ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-R1", "Qwen/Qwen2.5-72B-Instruct"],
+    keyUrl: "https://cloud.siliconflow.cn/account/ak" },
   { key: "ollama", name: "Ollama", hint: t("本机模型，不用 Key", "Local models, no key needed"), color: "#555555", protocol: "openai",
     base_url: "http://127.0.0.1:11434/v1", model: "qwen3:8b", models: ["qwen3:8b"], noKey: true },
   { key: "custom", name: t("自定义 API", "Custom API"), hint: t("任意 OpenAI 兼容接口 / 中转", "Any OpenAI-compatible API or relay"), color: "#7a746b", protocol: "openai",
@@ -134,6 +138,7 @@ export function LLMSettings({ s, setS, onTest, testing, savedVendor }: {
         {!vendor.noKey && (
           <label className="span2">API Key
             {vendor.keyUrl && <a className="small key-link" href={vendor.keyUrl} target="_blank" rel="noreferrer">{t("去 {name} 获取 Key", "Get a key from {name}", { name: vendor.name })}</a>}
+            <ReferralLink vendor={vendor.key} name={vendor.name} />
             <input type="password" autoComplete="off" value={llm.api_key} placeholder={t("在这里填你自己的 Key；只存在本机数据库", "Enter your own key; stored only in the local database")}
               onChange={(e) => set({ api_key: e.target.value })} />
           </label>

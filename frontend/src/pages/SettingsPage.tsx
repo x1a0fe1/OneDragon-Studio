@@ -2,6 +2,8 @@ import { Fragment, useEffect, useState } from "react";
 import { api, Settings } from "../api";
 import DonateButton from "../components/DonateButton";
 import VoicePicker from "../components/VoicePicker";
+import ReferralLink from "../components/ReferralLink";
+import { REFERRAL } from "../referral";
 import { LLMSettings } from "../components/LLMSettings";
 import { t } from "../i18n";
 
@@ -326,6 +328,7 @@ function CloudCard({ provider, s, set, onTest, testing }: {
       <h2>{info.title}</h2>
       <p className="muted small">
         {info.keyHint}{t("。", ". ")}<a href={info.keyUrl} target="_blank" rel="noreferrer">{t("打开控制台", "Open console")}</a>
+        {REFERRAL[provider] && <><br /><ReferralLink vendor={provider} name={provider === "aliyun" ? t("阿里云", "Alibaba Cloud") : t("火山引擎", "Volcano Engine")} /></>}
         <br />{t("模型名会随平台更新，填控制台模型列表里的名字即可；视频只生成画面，配音和字幕由这里自己做。", "Model names change as the platform updates; use a name from the console's model list. The platform only generates visuals; voice-over and subtitles are done here.")}
       </p>
       <div className="field-grid">

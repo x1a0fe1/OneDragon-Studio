@@ -10,7 +10,7 @@
 
 - **流程化**：每一步的产物都存下来、都能在网页里改；改了哪一步就从哪一步重跑，不用推倒重来。
 - **后台任务队列**：耗时操作排队执行，失败自动重试，关掉网页、重启服务都能接着跑。不需要 Redis / Docker。
-- **模型可插拔**：文本大模型内置 DeepSeek、OpenAI、Google Gemini、Anthropic Claude、Azure OpenAI、OpenRouter、阿里云百炼、火山方舟、Ollama 预设，也支持任意 OpenAI 兼容接口，海外接口可配代理；生图、生视频可选云端平台（阿里云百炼、火山方舟，不用 GPU）或 ComfyUI（本机或远程 GPU 服务器）。
+- **模型可插拔**：文本大模型内置 DeepSeek、OpenAI、Google Gemini、Anthropic Claude、Azure OpenAI、OpenRouter、阿里云百炼、火山方舟、硅基流动、Ollama 预设，也支持任意 OpenAI 兼容接口，海外接口可配代理；生图、生视频可选云端平台（阿里云百炼、火山方舟，不用 GPU）或 ComfyUI（本机或远程 GPU 服务器）。
 - **中英双语界面**：侧边栏底部「中 / EN」切换，提示和报错也跟着变。
 - **竖屏优先**：默认 9:16，面向快手 / 抖音的短剧与漫剧。
 
@@ -58,6 +58,17 @@
 - 模型名可以在设置里改，平台出了新模型直接换名字即可。「保存并测试 API Key」只验证 Key，不生成内容、不花钱。
 
 默认是「演示」供应商：不调用任何模型，出带文字的占位图和缓慢推近的占位视频，用来先把流程走通。
+
+### 获取 API Key
+
+| 平台 | 用途 | 去哪里拿 Key |
+|---|---|---|
+| 阿里云百炼 | 通义千问（写剧本、拆分镜）+ 通义万相（生图、生视频），一个 Key 全包 | [百炼控制台](https://bailian.console.aliyun.com/) → API Key；还没有阿里云账号可以[从这里注册](https://www.aliyun.com/product/bailian?source=5176.29345612&userCode=nras4t9i)¹ |
+| 火山方舟 | 豆包大模型 + Seedream 生图 + Seedance 生视频 | [方舟控制台](https://console.volcengine.com/ark) → API Key 管理 |
+| 硅基流动 | 一个 Key 用 DeepSeek、Qwen 等开源模型写剧本、拆分镜 | [API 密钥页](https://cloud.siliconflow.cn/account/ak)；还没有账号可以[从这里注册](https://cloud.siliconflow.cn/i/lcAnrxmO)¹ |
+| DeepSeek | 写剧本、拆分镜，便宜好用 | [DeepSeek 开放平台](https://platform.deepseek.com/api_keys) |
+
+¹ 推广链接：通过它注册，作者能获得平台给的少量奖励（阿里云是消费返佣，硅基流动是代金券），你的价格不变，也算是支持本项目。不想用的话直接去官网注册即可。
 
 ## 接 ComfyUI
 

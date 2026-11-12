@@ -12,7 +12,7 @@ MASK = "********"
 _VENDOR_HOSTS = {
     "deepseek.com": "deepseek", "api.openai.com": "openai", "generativelanguage.googleapis.com": "gemini",
     "anthropic.com": "anthropic", "openai.azure.com": "azure", "openrouter.ai": "openrouter",
-    "dashscope": "aliyun", "volces.com": "volcengine", ":11434": "ollama",
+    "dashscope": "aliyun", "volces.com": "volcengine", "siliconflow": "siliconflow", ":11434": "ollama",
 }
 
 

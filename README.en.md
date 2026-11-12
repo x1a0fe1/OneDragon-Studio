@@ -12,7 +12,7 @@ Script → AI storyboard → Character/scene assets → Shot first frames → Im
 
 - **Step-by-step workflow**: every step's output is saved and editable in the browser; change one step and re-run from there, no need to start over.
 - **Background task queue**: long-running jobs are queued, failures are retried automatically, and work resumes even if you close the page or restart the server. No Redis / Docker required.
-- **Pluggable models**: text LLMs come with built-in presets for DeepSeek, OpenAI, Google Gemini, Anthropic Claude, Azure OpenAI, OpenRouter, Alibaba Cloud Model Studio, Volcano Engine Ark, Ollama, plus any OpenAI-compatible endpoint, with an optional proxy for overseas APIs; image and video generation can use cloud platforms (Alibaba Cloud Model Studio (阿里云百炼), Volcano Engine Ark (火山方舟), no GPU needed) or ComfyUI (on your own machine or a remote GPU server).
+- **Pluggable models**: text LLMs come with built-in presets for DeepSeek, OpenAI, Google Gemini, Anthropic Claude, Azure OpenAI, OpenRouter, Alibaba Cloud Model Studio, Volcano Engine Ark, SiliconFlow, Ollama, plus any OpenAI-compatible endpoint, with an optional proxy for overseas APIs; image and video generation can use cloud platforms (Alibaba Cloud Model Studio (阿里云百炼), Volcano Engine Ark (火山方舟), no GPU needed) or ComfyUI (on your own machine or a remote GPU server).
 - **Vertical first**: 9:16 by default, aimed at short dramas and comic dramas for Kuaishou / Douyin.
 
 ## Development Progress
