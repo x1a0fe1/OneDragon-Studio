@@ -4,6 +4,7 @@ import { api, Episode, mediaUrl, ProjectDetail, Shot, Task, waitTask } from "../
 import DonateButton from "../components/DonateButton";
 import EditableText from "../components/EditableText";
 import OneClick from "../components/OneClick";
+import ChatStoryboard from "../components/ChatStoryboard";
 import { busy, TaskStatus, UploadButton } from "../components/Media";
 import { useProjectTasks } from "../useProjectTasks";
 import { t } from "../i18n";
@@ -26,6 +27,8 @@ export default function EpisodePage() {
   const [task, setTask] = useState<Task | null>(null);
   const [err, setErr] = useState("");
   const [batchMsg, setBatchMsg] = useState("");
+  const [chatOpen, setChatOpen] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
 
   const load = useCallback(async () => {
     const e = await api.episode(eid);
@@ -144,9 +147,19 @@ export default function EpisodePage() {
           <button className="primary" onClick={runStoryboard} disabled={!!running || !script.trim()}>
             {running ? t("拆分镜中…", "Storyboarding…") : ep.shots.length ? t("重新 AI 拆分镜", "Redo AI Storyboard") : t("AI 拆分镜", "AI Storyboard")}
           </button>
+          <button onClick={() => { setErr(""); setImportMsg(""); setChatOpen(true); }} disabled={!!running || !script.trim()}
+            title={t("复制提示词到 Claude、ChatGPT 等聊天网页，再把结果粘贴回来，不需要 API Key", "Copy the prompt to Claude, ChatGPT, etc., then paste the result back — no API key needed")}>
+            {t("用聊天 AI 拆分镜", "Storyboard via chat AI")}
+          </button>
           {task && <TaskBadge t={task} />}
         </div>
         {err && <p className="error">{err}</p>}
+        {importMsg && <p className="ok small">{importMsg}</p>}
+        {chatOpen && (
+          <ChatStoryboard eid={eid} seconds={seconds} hasShots={ep.shots.length > 0} beforeOpen={saveScript}
+            onClose={() => setChatOpen(false)}
+            onImported={(m) => { setChatOpen(false); setImportMsg(m); load(); }} />
+        )}
       </div>
 
       <OneClick eid={eid} hasShots={ep.shots.length > 0} hasScript={!!script.trim()} seconds={seconds}

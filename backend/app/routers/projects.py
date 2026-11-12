@@ -3,14 +3,15 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from .. import schemas as S
 from ..db import get_db
 from ..i18n import _
-from ..models import Character, Episode, Project, Prop, Scene, Shot
+from ..models import Character, Episode, Project, Prop, Scene, Shot, Task
 from ..providers import llm
-from ..services import media, novel, tasks
+from ..services import media, novel, storyboard, tasks
 
 MAX_NOVEL = 30 * 1024 * 1024
 
@@ -109,6 +110,38 @@ def run_storyboard(eid: int, target_seconds: int = 60, db: Session = Depends(get
         raise HTTPException(400, _("先填写剧本再拆分镜", "Write a script before generating the storyboard"))
     t = tasks.enqueue(db, "storyboard", eid, e.project_id, {"target_seconds": target_seconds})
     return tasks.task_out(t)
+
+
+@router.get("/episodes/{eid}/storyboard-prompt")
+def storyboard_prompt(eid: int, target_seconds: int = 60, db: Session = Depends(get_db)):
+    """拆分镜提示词：复制到 Claude / ChatGPT 等聊天网页里用，结果再用下面的接口粘贴回来。"""
+    e = _get(db, Episode, eid)
+    try:
+        system, user = storyboard.build_messages(db, e, target_seconds)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    return {"text": f"{system}\n\n---\n\n{user}\n\n---\n\n"
+                    "请严格按上面的 JSON 结构，只输出一段完整的 JSON，不要加任何解释文字。"}
+
+
+class PastedStoryboard(BaseModel):
+    text: str
+
+
+@router.post("/episodes/{eid}/storyboard-import")
+def storyboard_import(eid: int, body: PastedStoryboard, db: Session = Depends(get_db)):
+    """导入从聊天网页复制回来的分镜 JSON，效果和 AI 拆分镜一样：镜头整表替换，角色/场景/道具按名字合并。"""
+    e = _get(db, Episode, eid)
+    busy = db.query(Task).filter(Task.kind.in_(["storyboard", "pipeline"]), Task.target_id == eid,
+                                 Task.status.in_(["pending", "running"])).first()
+    if busy:
+        raise HTTPException(409, _("这一集正在 AI 拆分镜或一键成片，等它结束再导入",
+                                   "This episode is being storyboarded or run by One-Click; import after it finishes"))
+    try:
+        data = storyboard.parse_pasted(body.text)
+    except ValueError as ex:
+        raise HTTPException(400, str(ex))
+    return {"message": storyboard.apply(db, e, data)}
 
 
 # ---------- 角色 / 场景 ----------

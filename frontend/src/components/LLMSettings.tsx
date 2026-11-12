@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api, Settings } from "../api";
 import { t } from "../i18n";
 import ReferralLink from "./ReferralLink";
+import ModelCombo from "./ModelCombo";
 
 type Protocol = "openai" | "anthropic" | "azure";
 
@@ -127,9 +128,8 @@ export function LLMSettings({ s, setS, onTest, testing, savedVendor }: {
             onChange={(e) => set({ base_url: e.target.value })} />
         </label>
         <label>{t("模型", "Model")}{vendor.protocol === "azure" && <span className="muted">{t(" · 填 Azure 里的部署名", " · Use your Azure deployment name")}</span>}
-          <input list="llm-models" value={llm.model} placeholder={t("输入或下拉选择；点右边按钮获取最新列表", "Type or pick from the list; use Fetch Model List for the latest")}
-            onChange={(e) => set({ model: e.target.value })} />
-          <datalist id="llm-models">{suggestions.map((m) => <option key={m} value={m} />)}</datalist>
+          <ModelCombo value={llm.model} options={suggestions} onChange={(model) => set({ model })}
+            placeholder={t("输入或下拉选择；点下面按钮获取最新列表", "Type or pick from the list; use Fetch Model List for the latest")} />
         </label>
         {vendor.protocol !== "anthropic" ? (
           <label>{t("温度", "Temperature")}<input type="number" step={0.1} min={0} max={2} value={llm.temperature ?? ""}

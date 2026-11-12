@@ -136,6 +136,8 @@ export const api = {
   updateEpisode: (id: number, b: Partial<Episode>) => req<Episode>("PATCH", `/api/episodes/${id}`, b),
   deleteEpisode: (id: number) => req("DELETE", `/api/episodes/${id}`),
   storyboard: (id: number, seconds: number) => req<Task>("POST", `/api/episodes/${id}/storyboard?target_seconds=${seconds}`),
+  storyboardPrompt: (id: number, seconds: number) => req<{ text: string }>("GET", `/api/episodes/${id}/storyboard-prompt?target_seconds=${seconds}`),
+  storyboardImport: (id: number, text: string) => req<{ message: string }>("POST", `/api/episodes/${id}/storyboard-import`, { text }),
 
   createCharacter: (pid: number, b: Partial<Character>) => req<Character>("POST", `/api/projects/${pid}/characters`, b),
   updateCharacter: (id: number, b: Partial<Character>) => req<Character>("PATCH", `/api/characters/${id}`, b),
