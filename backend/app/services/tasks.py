@@ -1,7 +1,8 @@
 """轻量任务队列：任务存 SQLite，后台线程按「通道」逐个执行；失败自动重试；进程重启后未完成的任务继续跑。
 
-四条通道互不阻塞：text（拆分镜、配音）、media（生图、生视频，GPU 一次只跑一个）、compose（FFmpeg 合成）、
+四条通道互不阻塞：text（拆分镜、配音）、media（生图、生视频）、compose（FFmpeg 合成）、
 pipeline（一键成片：负责排子任务、等结果，本身不干重活）。
+media 通道用 ComfyUI（自己的 GPU）时一次只跑一个；全走云端平台时可以同时跑几个（设置 worker.media_concurrency）。
 
 新增一种任务：写一个 handler(db, task) -> str（返回结果说明），注册到 HANDLERS、KIND_LABELS 和 LANES。
 handler 里抛 TaskAbort 表示不用重试，直接失败。
@@ -103,6 +104,19 @@ def cancel(db: Session, task: Task) -> Task:
 
 _stop = threading.Event()
 _wake = {lane: threading.Event() for lane in LANES}
+_claim_lock = threading.Lock()  # 同一通道多个线程时，取任务要互斥，免得两个线程抢到同一个
+MAX_MEDIA_THREADS = 4
+
+
+def media_slots(db: Session) -> int:
+    """media 通道现在允许几个线程同时干活：用到 ComfyUI 就只能 1 个（一块 GPU），全是云端/演示就按设置。"""
+    if "comfyui" in (settings_store.get(db, "image_provider"), settings_store.get(db, "video_provider")):
+        return 1
+    try:
+        n = int((settings_store.get(db, "worker") or {}).get("media_concurrency") or 2)
+    except (TypeError, ValueError):
+        n = 2
+    return max(1, min(MAX_MEDIA_THREADS, n))
 
 
 def is_stopping() -> bool:
@@ -114,17 +128,20 @@ def _wake_all():
         ev.set()
 
 
-def _run_one(kinds: set[str]) -> bool:
+def _run_one(kinds: set[str], slot: int = 0) -> bool:
     db = SessionLocal()
     try:
-        task = (db.query(Task).filter(Task.status == "pending", Task.kind.in_(kinds))
-                .order_by(Task.id).first())
-        if not task:
-            return False
-        set_lang((task.params or {}).get("lang"))
-        task.status, task.message = "running", _("执行中…", "Running…")
-        task.attempts += 1
-        db.commit()
+        if slot and slot >= media_slots(db):
+            return False  # 这个额外线程当前没被启用（并发数没那么多，或者在用 ComfyUI）
+        with _claim_lock:
+            task = (db.query(Task).filter(Task.status == "pending", Task.kind.in_(kinds))
+                    .order_by(Task.id).first())
+            if not task:
+                return False
+            set_lang((task.params or {}).get("lang"))
+            task.status, task.message = "running", _("执行中…", "Running…")
+            task.attempts += 1
+            db.commit()
         try:
             msg = HANDLERS[task.kind](db, task)
             task.status, task.message, task.error = "done", msg or _("完成", "Done"), ""
@@ -152,17 +169,19 @@ def _run_one(kinds: set[str]) -> bool:
         db.close()
 
 
-def _loop(lane: str):
+def _loop(lane: str, slot: int = 0):
     kinds = LANES[lane]
     while not _stop.is_set():
         try:
-            busy = _run_one(kinds)
+            busy = _run_one(kinds, slot)
         except Exception:  # noqa: BLE001
-            log.exception("任务循环异常（%s）", lane)
+            log.exception("任务循环异常（%s #%d）", lane, slot)
             busy = False
         if not busy:
+            # 多个线程共用一个唤醒信号：只有 0 号负责清除，其他线程最多睡 3 秒自己醒
             _wake[lane].wait(3)
-            _wake[lane].clear()
+            if slot == 0:
+                _wake[lane].clear()
 
 
 _threads: list[threading.Thread] = []
@@ -178,9 +197,10 @@ def start_worker():
         db.close()
     _stop.clear()
     for lane in LANES:
-        t = threading.Thread(target=_loop, args=(lane,), name=f"onedragon-{lane}", daemon=True)
-        t.start()
-        _threads.append(t)
+        for slot in range(MAX_MEDIA_THREADS if lane == "media" else 1):
+            t = threading.Thread(target=_loop, args=(lane, slot), name=f"onedragon-{lane}-{slot}", daemon=True)
+            t.start()
+            _threads.append(t)
 
 
 def stop_worker():

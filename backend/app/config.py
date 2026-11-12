@@ -80,7 +80,7 @@ DEFAULT_SETTINGS = {
         "ai_label_position": "top-right",
         "tail_padding": 0.3,        # 每句台词说完后多停留的秒数
     },
-    "worker": {"max_attempts": 3},
+    "worker": {"max_attempts": 3, "media_concurrency": 2},  # 云端生图/生视频同时跑几个（用 ComfyUI 时固定 1 个）
     # 用户改过的提示词模板，键见 prompts.DEFAULTS；留空 = 默认
     "prompts": {},
 }

@@ -62,6 +62,9 @@ def _check(r: httpx.Response, name: str) -> dict:
     if r.status_code == 200:
         return data
     msg = _error_text(data) or r.text[:300]
+    if any(k in msg.lower() for k in ("arrearage", "overdue", "insufficient balance", "insufficientbalance")):
+        raise CloudAbort(_(f"{name} 账户欠费或余额不足，请到控制台充值后再试（{r.status_code}）：{msg}",
+                           f"{name} account is overdue or out of balance; top up in the console and retry ({r.status_code}): {msg}"))
     if r.status_code in (401, 403):
         raise CloudAbort(_(f"{name} 拒绝访问（{r.status_code}）：API Key 无效、没开通这个模型或余额不足。{msg}", f"{name} denied access ({r.status_code}): invalid API key, model not enabled, or insufficient balance. {msg}"))
     if r.status_code == 429 or r.status_code >= 500:
@@ -81,6 +84,8 @@ def _error_text(data: dict) -> str:
 
 def _hint(msg: str) -> str:
     low = msg.lower()
+    if any(k in low for k in ("arrearage", "overdue", "insufficient balance", "insufficientbalance", "余额不足", "欠费")):
+        return msg + _("（账户欠费或余额不足：到平台控制台充值后再试）", " (account overdue or insufficient balance: top up in the platform console, then retry)")
     if any(k in low for k in ("datainspection", "sensitive", "inappropriate", "risk", "审核")):
         return msg + _("（内容审核没通过：换个说法，避开暴力、血腥、真实人物等描写再试）", " (failed content moderation: rephrase and avoid violence, gore, real people, etc., then retry)")
     if "ipinfringement" in low:

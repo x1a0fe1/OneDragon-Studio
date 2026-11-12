@@ -177,6 +177,16 @@ export default function SettingsPage() {
               <option value="comfyui">{t("ComfyUI（自己的 GPU）", "ComfyUI (your own GPU)")}</option>
             </select>
           </label>
+          <label>{t("同时生成几个", "Parallel jobs")}
+            <input type="number" min={1} max={4} value={s.worker?.media_concurrency ?? 2}
+              disabled={s.image_provider === "comfyui" || s.video_provider === "comfyui"}
+              onChange={(e) => setS({ ...s, worker: { ...(s.worker || {}), media_concurrency: Math.max(1, Math.min(4, Number(e.target.value) || 1)) } })} />
+            <small className="muted">
+              {s.image_provider === "comfyui" || s.video_provider === "comfyui"
+                ? t("用 ComfyUI 时固定一次一个（一块显卡）", "Fixed at 1 while ComfyUI is used (one GPU)")
+                : t("云端平台可以同时跑 2～4 个，一集出视频快很多；平台限流时会自动排队重试", "Cloud platforms can run 2–4 at once, making an episode much faster; rate limits are retried automatically")}
+            </small>
+          </label>
         </div>
       </div>
 
